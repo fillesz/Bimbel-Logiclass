@@ -40,21 +40,43 @@ function Students() {
       tutor: "",
       tutorId: "",
     });
+    
 
-  // =========================
-  // DATA TUTOR
-  // =========================
+// =========================
+// DATA TUTOR
+// =========================
 
-  const tutors = [
-    {
-      id: "T001",
-      name: "Kak Bara",
-    },
-    {
-      id: "T002",
-      name: "Kak Rani",
-    },
-  ];
+const [accounts] = useState(() => {
+  const savedAccounts =
+    localStorage.getItem("accounts");
+
+  if (savedAccounts) {
+    try {
+      return JSON.parse(savedAccounts);
+    } catch (error) {
+      console.error(
+        "Data accounts rusak:",
+        error
+      );
+
+      return [];
+    }
+  }
+
+  return [];
+});
+
+const tutors = accounts
+  .filter(
+    (account) =>
+      account.role === "tutor" &&
+      account.tutorId
+  )
+  .map((account) => ({
+    id: account.tutorId,
+    name: account.name,
+  }));
+
 
   // =========================
   // FILTER BERDASARKAN ROLE
