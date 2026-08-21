@@ -85,9 +85,10 @@ function Login() {
 
       <div className="login-card">
 
-        <h1>📚 Dashboard</h1>
-
-        <h2>LOGICLASS</h2>
+        <h1 style={{ fontSize: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+  📚 Dashboard
+</h1>
+<h2 style={{ fontSize: '20px' }}>LOGICLASS</h2>
 
         <p>
           Silakan login terlebih dahulu

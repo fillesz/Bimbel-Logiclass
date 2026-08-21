@@ -28,7 +28,7 @@
 
 /* Judul */
 .title-container h1{
-    font-size:30px;
+    font-size:30px !important;
     color:#2563eb;
     margin:0;
     line-height:1.1;
@@ -36,7 +36,7 @@
 }
 
 .title-container h2{
-    font-size:25px;
+    font-size:25px !important;
     color:#f6d710;
     margin:0 0 18px;
     line-height:1.1;
