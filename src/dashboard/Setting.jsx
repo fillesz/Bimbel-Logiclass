@@ -1,8 +1,15 @@
 import DashboardLayout from "../layouts/DashboardLayout";
 import { useState } from "react";
+import { getStudents } from "../data/studentStorage";
 
 function Setting() {
   const user = JSON.parse(localStorage.getItem("user"));
+
+  // =========================
+  // DATA MURID (untuk dropdown Student ID)
+  // =========================
+
+  const students = getStudents();
 
   // =========================
   // DATA AKUN
@@ -183,7 +190,7 @@ function Setting() {
       newAccount.role === "parent" &&
       !newAccount.studentId.trim()
     ) {
-      alert("Student ID wajib diisi.");
+      alert("Silakan pilih murid untuk akun parent ini.");
       return;
     }
 
@@ -398,6 +405,23 @@ function Setting() {
     }
 
     return "👨‍👩‍👧";
+  };
+
+  // =========================
+  // NAMA MURID BERDASARKAN ID
+  // (dipakai untuk tampilan tabel "ID Terkait")
+  // =========================
+
+  const getStudentLabel = (studentId) => {
+    const student = students.find(
+      (item) => item.id === studentId
+    );
+
+    if (!student) {
+      return studentId || "-";
+    }
+
+    return `${student.id} • ${student.name}`;
   };
 
   // =========================
@@ -654,7 +678,7 @@ function Setting() {
 
                           {account.role === "tutor"
                             ? account.tutorId
-                            : account.studentId}
+                            : getStudentLabel(account.studentId)}
 
                         </span>
 
@@ -889,18 +913,16 @@ function Setting() {
               )}
 
 
-              {/* STUDENT ID */}
+              {/* STUDENT ID — sekarang dropdown, bukan ketik manual */}
 
               {newAccount.role === "parent" && (
 
                 <>
                   <label>
-                    Student ID
+                    Murid
                   </label>
 
-                  <input
-                    type="text"
-                    placeholder="Contoh: LG001"
+                  <select
                     value={
                       newAccount.studentId
                     }
@@ -911,7 +933,26 @@ function Setting() {
                           e.target.value,
                       })
                     }
-                  />
+                  >
+
+                    <option value="">
+                      Pilih Murid
+                    </option>
+
+                    {students.map(
+                      (student) => (
+
+                        <option
+                          key={student.id}
+                          value={student.id}
+                        >
+                          {student.id} • {student.name}
+                        </option>
+
+                      )
+                    )}
+
+                  </select>
                 </>
 
               )}
