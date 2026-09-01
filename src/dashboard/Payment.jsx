@@ -1,10 +1,13 @@
 import DashboardLayout from "../layouts/DashboardLayout";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-import { studentData } from "../data/studentData";
+import {
+  getStudents,
+} from "../data/studentStorage";
 
 import {
   getPackages,
+  savePackages,
   getRemainingMeetings,
   getPackageStatus,
 } from "../data/packageStorage";
@@ -22,165 +25,161 @@ function Payment() {
 
 
   // =========================
-  // DATA PACKAGE
+  // DATA MURID
   // =========================
 
-  const [packages] = useState(() => {
+  const [students, setStudents] =
+    useState(() => getStudents());
 
-    return getPackages();
 
-  });
+  // =========================
+  // DATA PAKET
+  // =========================
+
+  const [packages, setPackages] =
+    useState(() => getPackages());
+
 
   // =========================
   // DATA PEMBAYARAN
   // =========================
 
-  const [payments, setPayments] = useState(() => {
-    try {
-      const saved = localStorage.getItem("logiclass_payments");
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error("Gagal membaca data pembayaran:", error);
+  const [payments, setPayments] =
+    useState(() => {
+
+      const savedPayments =
+        localStorage.getItem("payments");
+
+      if (savedPayments) {
+
+        try {
+
+          return JSON.parse(
+            savedPayments
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Data pembayaran rusak:",
+            error
+          );
+
+          return [];
+        }
+      }
+
       return [];
-    }
-  });
 
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+    });
 
-  const [paymentForm, setPaymentForm] = useState(() => ({
-    studentId: "",
-    packageId: "",
-    paymentDate: new Date().toISOString().split("T")[0],
-    amount: "",
-    method: "Transfer",
-    note: "",
-  }));
 
-  // Simpan otomatis setiap ada perubahan pembayaran
-  useEffect(() => {
-    localStorage.setItem(
-      "logiclass_payments",
-      JSON.stringify(payments)
-    );
-  }, [payments]);
+  // =========================
+  // MODAL
+  // =========================
 
-  const formatRupiah = (value) => {
-    const number = Number(value || 0);
+  const [showForm, setShowForm] =
+    useState(false);
 
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      maximumFractionDigits: 0,
-    }).format(number);
-  };
 
-  const openPaymentModal = () => {
-    setPaymentForm({
+  // =========================
+  // FORM PEMBAYARAN
+  // =========================
+
+  const [newPayment, setNewPayment] =
+    useState({
+
       studentId: "",
-      packageId: "",
-      paymentDate: new Date().toISOString().split("T")[0],
+      meetings: "",
+      date: "",
       amount: "",
       method: "Transfer",
       note: "",
+
     });
 
-    setShowPaymentModal(true);
-  };
 
-  const closePaymentModal = () => {
-    setShowPaymentModal(false);
-  };
+  // =========================
+  // REFRESH DATA MURID
+  // =========================
 
-  const handlePaymentChange = (event) => {
-    const { name, value } = event.target;
+  const refreshStudents = () => {
 
-    setPaymentForm((prev) => ({
-      ...prev,
-      [name]: value,
-      ...(name === "studentId"
-        ? { packageId: "" }
-        : {}),
-    }));
-  };
+    const latestStudents =
+      getStudents();
 
-  const handleSavePayment = (event) => {
-    event.preventDefault();
-
-    if (
-      !paymentForm.studentId ||
-      !paymentForm.packageId ||
-      !paymentForm.paymentDate ||
-      !paymentForm.amount ||
-      Number(paymentForm.amount) <= 0
-    ) {
-      alert("Lengkapi data pembayaran terlebih dahulu.");
-      return;
-    }
-
-    const selectedStudent = getStudent(
-      paymentForm.studentId
+    setStudents(
+      latestStudents
     );
 
-    const selectedPackage = packages.find(
-      (packageItem) =>
-        packageItem.id === paymentForm.packageId
-    );
-
-    if (!selectedStudent || !selectedPackage) {
-      alert("Data murid atau paket tidak ditemukan.");
-      return;
-    }
-
-    const newPayment = {
-      id: `PAY-${Date.now()}`,
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      packageId: selectedPackage.id,
-      packageName: selectedPackage.packageName,
-      paymentDate: paymentForm.paymentDate,
-      amount: Number(paymentForm.amount),
-      method: paymentForm.method,
-      note: paymentForm.note.trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    setPayments((prev) => [newPayment, ...prev]);
-    setShowPaymentModal(false);
-
-    alert(
-      `Pembayaran ${formatRupiah(
-        newPayment.amount
-      )} untuk ${newPayment.studentName} berhasil disimpan.`
-    );
   };
 
-  const deletePayment = (paymentId) => {
-    const confirmed = window.confirm(
-      "Hapus data pembayaran ini?"
-    );
 
-    if (!confirmed) {
-      return;
-    }
+  // =========================
+  // BUKA FORM
+  // =========================
 
-    setPayments((prev) =>
-      prev.filter(
-        (payment) => payment.id !== paymentId
-      )
-    );
+  const handleOpenForm = () => {
+
+    // Ambil data murid terbaru
+    refreshStudents();
+
+    setNewPayment({
+
+      studentId: "",
+      meetings: "",
+      date: "",
+      amount: "",
+      method: "Transfer",
+      note: "",
+
+    });
+
+    setShowForm(true);
+
   };
 
-  const visiblePayments = payments.filter((payment) => {
-    if (user?.role === "admin") {
-      return true;
-    }
 
-    if (user?.role === "parent") {
-      return payment.studentId === user.studentId;
-    }
+  // =========================
+  // TUTUP FORM
+  // =========================
 
-    return false;
-  });
+  const handleCloseForm = () => {
+
+    setShowForm(false);
+
+    setNewPayment({
+
+      studentId: "",
+      meetings: "",
+      date: "",
+      amount: "",
+      method: "Transfer",
+      note: "",
+
+    });
+
+  };
+
+
+  // =========================
+  // FORMAT RUPIAH
+  // =========================
+
+  const formatCurrency = (amount) => {
+
+    return new Intl.NumberFormat(
+      "id-ID",
+      {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0,
+      }
+    ).format(
+      Number(amount || 0)
+    );
+
+  };
 
 
   // =========================
@@ -190,21 +189,15 @@ function Payment() {
   const formatDate = (date) => {
 
     if (!date) {
-
       return "-";
-
     }
 
-
-    const parts = date.split("-");
-
+    const parts =
+      date.split("-");
 
     if (parts.length !== 3) {
-
       return date;
-
     }
-
 
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
 
@@ -212,12 +205,12 @@ function Payment() {
 
 
   // =========================
-  // CARI DATA MURID
+  // CARI MURID
   // =========================
 
   const getStudent = (studentId) => {
 
-    return studentData.find(
+    return students.find(
       (student) =>
         student.id === studentId
     );
@@ -226,484 +219,551 @@ function Payment() {
 
 
   // =========================
-  // PACKAGE YANG BOLEH DILIHAT
+  // GENERATE ID PEMBAYARAN
   // =========================
 
-  const visiblePackages =
-    packages.filter((packageItem) => {
+  const generatePaymentId = () => {
+
+    if (payments.length === 0) {
+      return "PAY001";
+    }
+
+    const numbers =
+      payments.map((payment) => {
+
+        const number =
+          parseInt(
+            String(payment.id)
+              .replace("PAY", ""),
+            10
+          );
+
+        return isNaN(number)
+          ? 0
+          : number;
+
+      });
+
+    const highestNumber =
+      Math.max(...numbers);
+
+    return `PAY${String(
+      highestNumber + 1
+    ).padStart(3, "0")}`;
+
+  };
 
 
-      // =========================
-      // ADMIN
-      // =========================
+  // =========================
+  // GENERATE ID PAKET
+  // =========================
 
-      if (user?.role === "admin") {
+  const generatePackageId = (
+    currentPackages
+  ) => {
 
-        return true;
+    if (currentPackages.length === 0) {
+      return "PKG001";
+    }
 
-      }
+    const numbers =
+      currentPackages.map((pkg) => {
+
+        const number =
+          parseInt(
+            String(pkg.id)
+              .replace("PKG", ""),
+            10
+          );
+
+        return isNaN(number)
+          ? 0
+          : number;
+
+      });
+
+    const highestNumber =
+      Math.max(...numbers);
+
+    return `PKG${String(
+      highestNumber + 1
+    ).padStart(3, "0")}`;
+
+  };
 
 
-      // =========================
-      // PARENT
-      // =========================
+  // =========================
+  // SIMPAN PEMBAYARAN
+  // =========================
 
-      if (user?.role === "parent") {
+  const handleSavePayment = (e) => {
 
-        return (
-          packageItem.studentId ===
-          user.studentId
+    e.preventDefault();
+
+
+    // =========================
+    // VALIDASI
+    // =========================
+
+    if (
+
+      !newPayment.studentId ||
+
+      !newPayment.meetings ||
+
+      !newPayment.date ||
+
+      !newPayment.amount
+
+    ) {
+
+      alert(
+        "Mohon lengkapi semua data pembayaran."
+      );
+
+      return;
+
+    }
+
+
+    const meetings =
+      Number(
+        newPayment.meetings
+      );
+
+    const amount =
+      Number(
+        newPayment.amount
+      );
+
+
+    if (
+
+      isNaN(meetings) ||
+
+      meetings <= 0
+
+    ) {
+
+      alert(
+        "Jumlah pertemuan harus lebih dari 0."
+      );
+
+      return;
+
+    }
+
+
+    if (
+
+      isNaN(amount) ||
+
+      amount <= 0
+
+    ) {
+
+      alert(
+        "Nominal pembayaran harus lebih dari 0."
+      );
+
+      return;
+
+    }
+
+
+    // =========================
+    // CEK MURID
+    // =========================
+
+    const selectedStudent =
+      students.find(
+        (student) =>
+          student.id ===
+          newPayment.studentId
+      );
+
+
+    if (!selectedStudent) {
+
+      alert(
+        "Data murid tidak ditemukan."
+      );
+
+      return;
+
+    }
+
+
+    // =========================
+    // BUAT DATA PEMBAYARAN
+    // =========================
+
+    const paymentData = {
+
+      id:
+        generatePaymentId(),
+
+      studentId:
+        newPayment.studentId,
+
+      meetings:
+        meetings,
+
+      date:
+        newPayment.date,
+
+      amount:
+        amount,
+
+      method:
+        newPayment.method,
+
+      note:
+        newPayment.note.trim(),
+
+      status:
+        "Lunas",
+
+    };
+
+
+    // =========================
+    // SIMPAN PEMBAYARAN
+    // =========================
+
+    const updatedPayments = [
+
+      ...payments,
+
+      paymentData,
+
+    ];
+
+
+    setPayments(
+      updatedPayments
+    );
+
+
+    localStorage.setItem(
+
+      "payments",
+
+      JSON.stringify(
+        updatedPayments
+      )
+
+    );
+
+
+    // =========================
+    // UPDATE / BUAT PAKET
+    // =========================
+
+    const packageIndex =
+      packages.findIndex(
+        (pkg) =>
+          pkg.studentId ===
+          newPayment.studentId
+      );
+
+
+    let updatedPackages;
+
+
+    // =========================
+    // JIKA SUDAH ADA PAKET
+    // =========================
+
+    if (packageIndex !== -1) {
+
+      updatedPackages =
+        packages.map(
+          (pkg, index) => {
+
+            if (
+              index !== packageIndex
+            ) {
+              return pkg;
+            }
+
+            return {
+
+              ...pkg,
+
+              packageName:
+                `Paket ${meetings} Pertemuan`,
+
+              totalMeetings:
+                meetings,
+
+              usedMeetings:
+                0,
+
+              startDate:
+                newPayment.date,
+
+              status:
+                "active",
+
+            };
+
+          }
         );
 
-      }
-
-
-      return false;
-
-    });
-
-
-  // =========================
-  // PARENT VIEW
-  // =========================
-
-  if (user?.role === "parent") {
-
-
-    const packageItem =
-      visiblePackages[0];
-
-
-    const child =
-      getStudent(
-        user?.studentId
-      );
+    }
 
 
     // =========================
     // JIKA BELUM ADA PAKET
     // =========================
 
-    if (!packageItem) {
+    else {
 
-      return (
+      const newPackage = {
 
-        <DashboardLayout>
+        id:
+          generatePackageId(
+            packages
+          ),
 
-          <div className="payment-page">
+        studentId:
+          newPayment.studentId,
 
+        packageName:
+          `Paket ${meetings} Pertemuan`,
 
-            <div className="page-header">
+        totalMeetings:
+          meetings,
 
-              <div>
+        usedMeetings:
+          0,
 
-                <h1>
-                  💰 Paket Belajar
-                </h1>
+        startDate:
+          newPayment.date,
 
-                <p>
-                  Informasi paket belajar anak.
-                </p>
+        endDate:
+          "",
 
-              </div>
+        status:
+          "active",
 
-            </div>
-
-
-            <div className="payment-empty">
-
-              <div className="payment-empty-icon">
-                📦
-              </div>
-
-
-              <h2>
-                Belum Ada Paket
-              </h2>
+      };
 
 
-              <p>
+      updatedPackages = [
 
-                Saat ini belum ada paket belajar
-                yang terhubung dengan akun anak Anda.
+        ...packages,
 
-              </p>
+        newPackage,
 
-
-              <span>
-
-                Silakan hubungi administrator
-                untuk informasi lebih lanjut.
-
-              </span>
-
-            </div>
-
-
-          </div>
-
-        </DashboardLayout>
-
-      );
+      ];
 
     }
 
 
     // =========================
-    // HITUNG PACKAGE
+    // SIMPAN PAKET
     // =========================
 
-    const remaining =
-      getRemainingMeetings(
-        packageItem
-      );
-
-
-    const packageStatus =
-      getPackageStatus(
-        packageItem
-      );
-
-
-    const progress =
-      packageItem.totalMeetings > 0
-        ? (
-            packageItem.usedMeetings /
-            packageItem.totalMeetings
-          ) * 100
-        : 0;
-
-
-    return (
-
-      <DashboardLayout>
-
-
-        <div className="payment-page">
-
-
-          {/* =========================
-              HEADER
-          ========================= */}
-
-          <div className="page-header">
-
-            <div>
-
-              <h1>
-                💰 Paket Belajar
-              </h1>
-
-              <p>
-                Pantau penggunaan paket belajar anak.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* =========================
-              CHILD INFO
-          ========================= */}
-
-          <div className="payment-child-card">
-
-
-            <div className="payment-child-avatar">
-              👨‍🎓
-            </div>
-
-
-            <div className="payment-child-info">
-
-              <span>
-                Paket untuk
-              </span>
-
-
-              <h2>
-                {child?.name || "Murid"}
-              </h2>
-
-
-              <p>
-
-                {child?.id}
-
-                {" • "}
-
-                {child?.className}
-
-              </p>
-
-            </div>
-
-
-            <div
-              className={`package-status-badge ${packageStatus.className}`}
-            >
-
-              {packageStatus.color === "green"
-                ? "🟢"
-                : packageStatus.color === "yellow"
-                ? "🟡"
-                : "🔴"}
-
-              {" "}
-
-              {packageStatus.label}
-
-            </div>
-
-
-          </div>
-
-
-          {/* =========================
-              PACKAGE CARD
-          ========================= */}
-
-          <div
-            className={`payment-package-card ${packageStatus.className}`}
-          >
-
-
-            {/* HEADER */}
-
-            <div className="package-card-header">
-
-
-              <div>
-
-                <span>
-                  Paket Belajar
-                </span>
-
-
-                <h2>
-                  {packageItem.packageName}
-                </h2>
-
-              </div>
-
-
-              <div className="package-status-large">
-
-                {packageStatus.color === "green"
-                  ? "🟢"
-                  : packageStatus.color === "yellow"
-                  ? "🟡"
-                  : "🔴"}
-
-              </div>
-
-
-            </div>
-
-
-            {/* PACKAGE SUMMARY */}
-
-            <div className="package-meeting-summary">
-
-
-              <div>
-
-                <span>
-                  Total Pertemuan
-                </span>
-
-                <strong>
-                  {packageItem.totalMeetings}
-                </strong>
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  Sudah Digunakan
-                </span>
-
-                <strong>
-                  {packageItem.usedMeetings}
-                </strong>
-
-              </div>
-
-
-              <div className="remaining-meeting">
-
-                <span>
-                  Sisa Pertemuan
-                </span>
-
-                <strong>
-                  {remaining}
-                </strong>
-
-              </div>
-
-
-            </div>
-
-
-            {/* PROGRESS */}
-
-            <div className="package-progress-section">
-
-
-              <div className="package-progress-header">
-
-                <span>
-                  Penggunaan Paket
-                </span>
-
-
-                <strong>
-                  {Math.round(progress)}%
-                </strong>
-
-              </div>
-
-
-              <div className="package-progress-bar">
-
-                <div
-                  className={`package-progress-fill ${packageStatus.className}`}
-                  style={{
-                    width: `${progress}%`,
-                  }}
-                />
-
-              </div>
-
-
-            </div>
-
-
-            {/* PERIOD */}
-
-            <div className="package-period">
-
-
-              <div>
-
-                <span>
-                  📅 Mulai
-                </span>
-
-                <strong>
-
-                  {formatDate(
-                    packageItem.startDate
-                  )}
-
-                </strong>
-
-              </div>
-
-
-              <div className="package-period-line">
-
-                →
-
-              </div>
-
-
-              <div>
-
-                <span>
-                  🏁 Berakhir
-                </span>
-
-                <strong>
-
-                  {formatDate(
-                    packageItem.endDate
-                  )}
-
-                </strong>
-
-              </div>
-
-
-            </div>
-
-
-            {/* STATUS MESSAGE */}
-
-            <div
-              className={`package-message ${packageStatus.className}`}
-            >
-
-              {packageStatus.status === "active" && (
-
-                <>
-                  🎉 Paket masih aktif.
-                  Anak Anda masih memiliki{" "}
-
-                  <strong>
-                    {remaining} pertemuan
-                  </strong>
-
-                  .
-                </>
-
-              )}
-
-
-              {packageStatus.status === "warning" && (
-
-                <>
-                  ⚠️ Paket hampir habis.
-                  Tersisa{" "}
-
-                  <strong>
-                    1 pertemuan
-                  </strong>
-
-                  . Segera lakukan perpanjangan paket.
-                </>
-
-              )}
-
-
-              {packageStatus.status === "expired" && (
-
-                <>
-                  🚨 Paket sudah habis.
-                  Silakan hubungi administrator
-                  untuk memperpanjang paket belajar.
-                </>
-
-              )}
-
-            </div>
-
-
-          </div>
-
-
-        </div>
-
-
-      </DashboardLayout>
-
+    setPackages(
+      updatedPackages
     );
 
-  }
+
+    savePackages(
+      updatedPackages
+    );
+
+
+    // =========================
+    // RESET
+    // =========================
+
+    handleCloseForm();
+
+
+    alert(
+      "Pembayaran berhasil disimpan dan paket murid telah diaktifkan."
+    );
+
+  };
 
 
   // =========================
-  // ADMIN VIEW
+  // HAPUS PEMBAYARAN
+  // =========================
+
+  const handleDeletePayment = (
+    payment
+  ) => {
+
+    const student =
+      getStudent(
+        payment.studentId
+      );
+
+
+    const confirmed =
+      window.confirm(
+
+        `Yakin ingin menghapus pembayaran ${
+          student?.name || ""
+        }?`
+
+      );
+
+
+    if (!confirmed) {
+      return;
+    }
+
+
+    const updatedPayments =
+      payments.filter(
+        (item) =>
+          item.id !== payment.id
+      );
+
+
+    setPayments(
+      updatedPayments
+    );
+
+
+    localStorage.setItem(
+
+      "payments",
+
+      JSON.stringify(
+        updatedPayments
+      )
+
+    );
+
+
+    alert(
+      "Data pembayaran berhasil dihapus."
+    );
+
+  };
+
+
+  // =========================
+  // PEMBAYARAN YANG TERLIHAT
+  // =========================
+
+  const visiblePayments =
+    payments.filter(
+      (payment) => {
+
+        if (
+          user?.role === "admin"
+        ) {
+          return true;
+        }
+
+
+        if (
+          user?.role === "parent"
+        ) {
+
+          return (
+            payment.studentId ===
+            user.studentId
+          );
+
+        }
+
+
+        return false;
+
+      }
+    );
+
+
+  // =========================
+  // PAKET YANG TERLIHAT
+  // =========================
+
+  const visiblePackages =
+    packages.filter(
+      (pkg) => {
+
+        if (
+          user?.role === "admin"
+        ) {
+          return true;
+        }
+
+
+        if (
+          user?.role === "parent"
+        ) {
+
+          return (
+            pkg.studentId ===
+            user.studentId
+          );
+
+        }
+
+
+        return false;
+
+      }
+    );
+
+
+  // =========================
+  // STATISTIK PAKET
+  // =========================
+
+  const activePackages =
+    visiblePackages.filter(
+      (pkg) =>
+        getPackageStatus(pkg)
+          .status === "active"
+    ).length;
+
+
+  const warningPackages =
+    visiblePackages.filter(
+      (pkg) =>
+        getPackageStatus(pkg)
+          .status === "warning"
+    ).length;
+
+
+  const expiredPackages =
+    visiblePackages.filter(
+      (pkg) =>
+        getPackageStatus(pkg)
+          .status === "expired"
+    ).length;
+
+
+  // =========================
+  // TOTAL PEMBAYARAN
+  // =========================
+
+  const totalPayment =
+    visiblePayments.reduce(
+      (total, payment) =>
+        total +
+        Number(payment.amount || 0),
+
+      0
+    );
+
+
+  // =========================
+  // RENDER
   // =========================
 
   return (
 
     <DashboardLayout>
-
 
       <div className="payment-page">
 
@@ -714,61 +774,33 @@ function Payment() {
 
         <div className="page-header">
 
-
           <div>
 
             <h1>
-              💰 Pembayaran & Paket
+              💰 Pembayaran
             </h1>
 
             <p>
-              Pantau status paket belajar seluruh murid.
+              Kelola pembayaran dan paket belajar murid.
             </p>
 
           </div>
 
 
-          <div
-            className="payment-header-actions"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-            }}
-          >
-
-            <div className="payment-header-info">
-
-              <span>
-                Total Paket
-              </span>
-
-              <strong>
-                {visiblePackages.length}
-              </strong>
-
-            </div>
+          {user?.role === "admin" && (
 
             <button
-              type="button"
-              onClick={openPaymentModal}
-              style={{
-                border: "none",
-                borderRadius: "12px",
-                padding: "12px 18px",
-                background: "#111827",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "14px",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-              }}
+              className="add-button"
+              onClick={
+                handleOpenForm
+              }
             >
-              + Input Pembayaran
+
+              + Catat Pembayaran
+
             </button>
 
-          </div>
-
+          )}
 
         </div>
 
@@ -777,17 +809,37 @@ function Payment() {
             SUMMARY
         ========================= */}
 
-        <div className="payment-summary">
+        <div className="payment-summary-grid">
 
-
-          {/* AKTIF */}
 
           <div className="payment-summary-card">
 
-            <span className="payment-summary-icon">
-              🟢
-            </span>
+            <div className="summary-icon">
+              💰
+            </div>
 
+            <div>
+
+              <span>
+                Total Pembayaran
+              </span>
+
+              <strong>
+                {formatCurrency(
+                  totalPayment
+                )}
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <div className="payment-summary-card">
+
+            <div className="summary-icon">
+              🟢
+            </div>
 
             <div>
 
@@ -795,18 +847,8 @@ function Payment() {
                 Paket Aktif
               </span>
 
-
               <strong>
-
-                {
-                  visiblePackages.filter(
-                    (packageItem) =>
-                      getPackageStatus(
-                        packageItem
-                      ).status === "active"
-                  ).length
-                }
-
+                {activePackages}
               </strong>
 
             </div>
@@ -814,14 +856,11 @@ function Payment() {
           </div>
 
 
-          {/* HAMPIR HABIS */}
-
           <div className="payment-summary-card">
 
-            <span className="payment-summary-icon">
+            <div className="summary-icon">
               🟡
-            </span>
-
+            </div>
 
             <div>
 
@@ -829,18 +868,8 @@ function Payment() {
                 Hampir Habis
               </span>
 
-
               <strong>
-
-                {
-                  visiblePackages.filter(
-                    (packageItem) =>
-                      getPackageStatus(
-                        packageItem
-                      ).status === "warning"
-                  ).length
-                }
-
+                {warningPackages}
               </strong>
 
             </div>
@@ -848,14 +877,11 @@ function Payment() {
           </div>
 
 
-          {/* HABIS */}
-
           <div className="payment-summary-card">
 
-            <span className="payment-summary-icon">
+            <div className="summary-icon">
               🔴
-            </span>
-
+            </div>
 
             <div>
 
@@ -863,43 +889,270 @@ function Payment() {
                 Paket Habis
               </span>
 
-
               <strong>
-
-                {
-                  visiblePackages.filter(
-                    (packageItem) =>
-                      getPackageStatus(
-                        packageItem
-                      ).status === "expired"
-                  ).length
-                }
-
+                {expiredPackages}
               </strong>
 
             </div>
 
           </div>
 
-
         </div>
 
 
         {/* =========================
-            TABLE
+            DAFTAR PEMBAYARAN
         ========================= */}
 
         <div className="payment-table-card">
-
 
           <div className="table-title">
 
             <div>
 
               <h2>
-                Daftar Paket Murid
+                💳 Riwayat Pembayaran
               </h2>
 
+              <p>
+                Daftar transaksi pembayaran murid.
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <div className="table-wrapper">
+
+            <table>
+
+              <thead>
+
+                <tr>
+
+                  <th>
+                    Murid
+                  </th>
+
+                  <th>
+                    Jumlah Pertemuan
+                  </th>
+
+                  <th>
+                    Nominal
+                  </th>
+
+                  <th>
+                    Tanggal
+                  </th>
+
+                  <th>
+                    Metode
+                  </th>
+
+                  <th>
+                    Status
+                  </th>
+
+                  {user?.role ===
+                    "admin" && (
+
+                    <th>
+                      Aksi
+                    </th>
+
+                  )}
+
+                </tr>
+
+              </thead>
+
+
+              <tbody>
+
+                {visiblePayments.length >
+                0 ? (
+
+                  visiblePayments.map(
+                    (payment) => {
+
+                      const student =
+                        getStudent(
+                          payment.studentId
+                        );
+
+
+                      return (
+
+                        <tr
+                          key={
+                            payment.id
+                          }
+                        >
+
+                          {/* MURID */}
+
+                          <td>
+
+                            <strong>
+
+                              {
+                                student?.name ||
+                                "Murid tidak ditemukan"
+                              }
+
+                            </strong>
+
+                            <br />
+
+                            <small>
+
+                              {
+                                student?.className
+                              }
+
+                            </small>
+
+                          </td>
+
+
+                          {/* PERTEMUAN */}
+
+                          <td>
+
+                            {
+                              payment.meetings
+                            } pertemuan
+
+                          </td>
+
+
+                          {/* NOMINAL */}
+
+                          <td>
+
+                            <strong>
+
+                              {formatCurrency(
+                                payment.amount
+                              )}
+
+                            </strong>
+
+                          </td>
+
+
+                          {/* TANGGAL */}
+
+                          <td>
+
+                            {formatDate(
+                              payment.date
+                            )}
+
+                          </td>
+
+
+                          {/* METODE */}
+
+                          <td>
+
+                            {
+                              payment.method
+                            }
+
+                          </td>
+
+
+                          {/* STATUS */}
+
+                          <td>
+
+                            <span className="payment-status success">
+
+                              ✓ Lunas
+
+                            </span>
+
+                          </td>
+
+
+                          {/* AKSI */}
+
+                          {user?.role ===
+                            "admin" && (
+
+                            <td>
+
+                              <button
+                                className="delete-button"
+                                onClick={() =>
+                                  handleDeletePayment(
+                                    payment
+                                  )
+                                }
+                                title="Hapus pembayaran"
+                              >
+
+                                🗑
+
+                              </button>
+
+                            </td>
+
+                          )}
+
+                        </tr>
+
+                      );
+
+                    }
+                  )
+
+                ) : (
+
+                  <tr>
+
+                    <td
+                      colSpan={
+                        user?.role === "admin"
+                          ? "7"
+                          : "6"
+                      }
+                      className="empty-data"
+                    >
+
+                      💳 Belum ada data pembayaran.
+
+                    </td>
+
+                  </tr>
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </div>
+
+
+        {/* =========================
+            DAFTAR PAKET
+        ========================= */}
+
+        <div className="payment-table-card">
+
+          <div className="table-title">
+
+            <div>
+
+              <h2>
+                📦 Daftar Paket Murid
+              </h2>
 
               <p>
                 Status penggunaan paket belajar.
@@ -912,9 +1165,7 @@ function Payment() {
 
           <div className="table-wrapper">
 
-
-            <table className="payment-table">
-
+            <table>
 
               <thead>
 
@@ -937,10 +1188,6 @@ function Payment() {
                   </th>
 
                   <th>
-                    Periode
-                  </th>
-
-                  <th>
                     Status
                   </th>
 
@@ -951,82 +1198,60 @@ function Payment() {
 
               <tbody>
 
-
-                {visiblePackages.length === 0 ? (
-
-                  <tr>
-
-                    <td
-                      colSpan="6"
-                      className="empty-data"
-                    >
-
-                      Belum ada data paket.
-
-                    </td>
-
-                  </tr>
-
-                ) : (
+                {visiblePackages.length >
+                0 ? (
 
                   visiblePackages.map(
-                    (packageItem) => {
-
+                    (pkg) => {
 
                       const student =
                         getStudent(
-                          packageItem.studentId
+                          pkg.studentId
                         );
 
 
                       const remaining =
                         getRemainingMeetings(
-                          packageItem
+                          pkg
                         );
 
 
                       const packageStatus =
                         getPackageStatus(
-                          packageItem
+                          pkg
                         );
 
 
                       return (
 
                         <tr
-                          key={packageItem.id}
+                          key={
+                            pkg.id
+                          }
                         >
-
 
                           {/* MURID */}
 
                           <td>
 
-                            <div className="payment-student">
+                            <strong>
 
-                              <div className="payment-student-avatar">
-                                👨‍🎓
-                              </div>
+                              {
+                                student?.name ||
+                                "Murid tidak ditemukan"
+                              }
 
+                            </strong>
 
-                              <div>
+                            <br />
 
-                                <strong>
-                                  {student?.name ||
-                                    "Murid tidak ditemukan"}
-                                </strong>
+                            <small>
 
+                              {
+                                student?.className
+                              }
 
-                                <span>
-
-                                  {student?.className ||
-                                    "-"}
-
-                                </span>
-
-                              </div>
-
-                            </div>
+                            </small>
 
                           </td>
 
@@ -1035,18 +1260,9 @@ function Payment() {
 
                           <td>
 
-                            <strong>
-
-                              {packageItem.packageName}
-
-                            </strong>
-
-
-                            <span className="payment-package-id">
-
-                              {packageItem.id}
-
-                            </span>
+                            {
+                              pkg.packageName
+                            }
 
                           </td>
 
@@ -1055,15 +1271,15 @@ function Payment() {
 
                           <td>
 
-                            <strong>
+                            {
+                              pkg.usedMeetings
+                            }
 
-                              {packageItem.usedMeetings}
+                            {" / "}
 
-                              {" / "}
-
-                              {packageItem.totalMeetings}
-
-                            </strong>
+                            {
+                              pkg.totalMeetings
+                            }
 
                           </td>
 
@@ -1072,41 +1288,13 @@ function Payment() {
 
                           <td>
 
-                            <strong
-                              className={
-                                packageStatus.className
-                              }
-                            >
+                            <strong>
 
                               {remaining}
 
                             </strong>
 
-
-                            <span>
-                              pertemuan
-                            </span>
-
-                          </td>
-
-
-                          {/* PERIODE */}
-
-                          <td>
-
-                            <div className="payment-date">
-
-                              {formatDate(
-                                packageItem.startDate
-                              )}
-
-                              {" - "}
-
-                              {formatDate(
-                                packageItem.endDate
-                              )}
-
-                            </div>
+                            {" pertemuan"}
 
                           </td>
 
@@ -1116,23 +1304,16 @@ function Payment() {
                           <td>
 
                             <span
-                              className={`package-status-badge ${packageStatus.className}`}
+                              className={
+                                packageStatus.className
+                              }
                             >
-
-                              {packageStatus.color === "green"
-                                ? "🟢"
-                                : packageStatus.color === "yellow"
-                                ? "🟡"
-                                : "🔴"}
-
-                              {" "}
 
                               {packageStatus.label}
 
                             </span>
 
                           </td>
-
 
                         </tr>
 
@@ -1141,181 +1322,20 @@ function Payment() {
                     }
                   )
 
-                )}
-
-
-              </tbody>
-
-
-            </table>
-
-
-          </div>
-
-
-        </div>
-
-
-        {/* =========================
-            RIWAYAT PEMBAYARAN
-        ========================= */}
-
-        <div
-          className="payment-table-card"
-          style={{ marginTop: "24px" }}
-        >
-
-          <div
-            className="table-title"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: "16px",
-            }}
-          >
-
-            <div>
-
-              <h2>
-                Riwayat Pembayaran
-              </h2>
-
-              <p>
-                Data pembayaran tersimpan otomatis dan
-                langsung muncul setelah disimpan.
-              </p>
-
-            </div>
-
-            <strong style={{ fontSize: "18px" }}>
-              {visiblePayments.length} transaksi
-            </strong>
-
-          </div>
-
-
-          <div className="table-wrapper">
-
-            <table className="payment-table">
-
-              <thead>
-
-                <tr>
-
-                  <th>
-                    Tanggal
-                  </th>
-
-                  <th>
-                    Murid
-                  </th>
-
-                  <th>
-                    Paket
-                  </th>
-
-                  <th>
-                    Nominal
-                  </th>
-
-                  <th>
-                    Metode
-                  </th>
-
-                  <th>
-                    Catatan
-                  </th>
-
-                  <th>
-                    Aksi
-                  </th>
-
-                </tr>
-
-              </thead>
-
-
-              <tbody>
-
-                {visiblePayments.length === 0 ? (
+                ) : (
 
                   <tr>
 
                     <td
-                      colSpan="7"
+                      colSpan="5"
                       className="empty-data"
                     >
-                      Belum ada pembayaran.
+
+                      📦 Belum ada paket murid.
+
                     </td>
 
                   </tr>
-
-                ) : (
-
-                  visiblePayments.map((payment) => (
-
-                    <tr key={payment.id}>
-
-                      <td>
-                        {formatDate(payment.paymentDate)}
-                      </td>
-
-                      <td>
-                        <strong>
-                          {payment.studentName}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <strong>
-                          {payment.packageName}
-                        </strong>
-
-                        <span className="payment-package-id">
-                          {payment.packageId}
-                        </span>
-                      </td>
-
-                      <td>
-                        <strong>
-                          {formatRupiah(payment.amount)}
-                        </strong>
-                      </td>
-
-                      <td>
-                        {payment.method}
-                      </td>
-
-                      <td>
-                        {payment.note || "-"}
-                      </td>
-
-                      <td>
-                        {user?.role === "admin" && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              deletePayment(payment.id)
-                            }
-                            style={{
-                              border: "none",
-                              borderRadius: "8px",
-                              padding: "7px 10px",
-                              background: "#fee2e2",
-                              color: "#dc2626",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            Hapus
-                          </button>
-                        )}
-                      </td>
-
-                    </tr>
-
-                  ))
 
                 )}
 
@@ -1328,405 +1348,285 @@ function Payment() {
         </div>
 
 
-        {/* =========================
-            MODAL INPUT PEMBAYARAN
-        ========================= */}
+      </div>
 
-        {showPaymentModal && (
 
-          <div
-            onClick={closePaymentModal}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(15, 23, 42, 0.45)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "20px",
-              zIndex: 9999,
-            }}
-          >
+      {/* =========================
+          MODAL INPUT PEMBAYARAN
+      ========================= */}
 
-            <div
-              onClick={(event) =>
-                event.stopPropagation()
-              }
-              style={{
-                width: "100%",
-                maxWidth: "560px",
-                maxHeight: "90vh",
-                overflowY: "auto",
-                background: "#ffffff",
-                borderRadius: "18px",
-                padding: "24px",
-                boxShadow:
-                  "0 20px 60px rgba(0,0,0,0.2)",
-              }}
-            >
+      {showForm && (
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "20px",
-                }}
-              >
+        <div className="modal-overlay">
 
-                <div>
+          <div className="student-modal payment-modal">
 
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: "22px",
-                    }}
-                  >
-                    Input Pembayaran
-                  </h2>
 
-                  <p
-                    style={{
-                      margin: "6px 0 0",
-                      color: "#6b7280",
-                      fontSize: "14px",
-                    }}
-                  >
-                    Masukkan transaksi pembayaran murid.
-                  </p>
+            {/* HEADER */}
 
-                </div>
+            <div className="modal-header">
 
-                <button
-                  type="button"
-                  onClick={closePaymentModal}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    fontSize: "24px",
-                    cursor: "pointer",
-                  }}
-                >
-                  ×
-                </button>
+              <div>
+
+                <h2>
+                  💰 Input Pembayaran
+                </h2>
+
+                <p>
+                  Masukkan transaksi pembayaran murid.
+                </p>
 
               </div>
 
 
-              <form onSubmit={handleSavePayment}>
+              <button
+                type="button"
+                className="close-button"
+                onClick={
+                  handleCloseForm
+                }
+              >
 
-                <div style={{ marginBottom: "16px" }}>
+                ×
 
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "7px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Murid
-                  </label>
-
-                  <select
-                    name="studentId"
-                    value={paymentForm.studentId}
-                    onChange={handlePaymentChange}
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "11px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  >
-
-                    <option value="">
-                      Pilih murid
-                    </option>
-
-                    {studentData.map((student) => (
-
-                      <option
-                        key={student.id}
-                        value={student.id}
-                      >
-                        {student.name} -{" "}
-                        {student.className || "-"}
-                      </option>
-
-                    ))}
-
-                  </select>
-
-                </div>
-
-
-                <div style={{ marginBottom: "16px" }}>
-
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "7px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Paket
-                  </label>
-
-                  <select
-                    name="packageId"
-                    value={paymentForm.packageId}
-                    onChange={handlePaymentChange}
-                    required
-                    disabled={!paymentForm.studentId}
-                    style={{
-                      width: "100%",
-                      padding: "11px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                      background: !paymentForm.studentId
-                        ? "#f3f4f6"
-                        : "#ffffff",
-                    }}
-                  >
-
-                    <option value="">
-                      {!paymentForm.studentId
-                        ? "Pilih murid terlebih dahulu"
-                        : "Pilih paket"}
-                    </option>
-
-                    {visiblePackages
-                      .filter(
-                        (packageItem) =>
-                          packageItem.studentId ===
-                          paymentForm.studentId
-                      )
-                      .map((packageItem) => (
-
-                        <option
-                          key={packageItem.id}
-                          value={packageItem.id}
-                        >
-                          {packageItem.packageName} -{" "}
-                          {packageItem.id}
-                        </option>
-
-                      ))}
-
-                  </select>
-
-                </div>
-
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "1fr 1fr",
-                    gap: "14px",
-                  }}
-                >
-
-                  <div style={{ marginBottom: "16px" }}>
-
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "7px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Tanggal
-                    </label>
-
-                    <input
-                      type="date"
-                      name="paymentDate"
-                      value={
-                        paymentForm.paymentDate
-                      }
-                      onChange={handlePaymentChange}
-                      required
-                      style={{
-                        width: "100%",
-                        padding: "11px 12px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "10px",
-                        fontSize: "14px",
-                        boxSizing: "border-box",
-                      }}
-                    />
-
-                  </div>
-
-
-                  <div style={{ marginBottom: "16px" }}>
-
-                    <label
-                      style={{
-                        display: "block",
-                        marginBottom: "7px",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Nominal
-                    </label>
-
-                    <input
-                      type="number"
-                      name="amount"
-                      value={paymentForm.amount}
-                      onChange={handlePaymentChange}
-                      placeholder="Contoh: 150000"
-                      min="1"
-                      required
-                      style={{
-                        width: "100%",
-                        padding: "11px 12px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: "10px",
-                        fontSize: "14px",
-                        boxSizing: "border-box",
-                      }}
-                    />
-
-                  </div>
-
-                </div>
-
-
-                <div style={{ marginBottom: "16px" }}>
-
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "7px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Metode Pembayaran
-                  </label>
-
-                  <select
-                    name="method"
-                    value={paymentForm.method}
-                    onChange={handlePaymentChange}
-                    style={{
-                      width: "100%",
-                      padding: "11px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                    }}
-                  >
-
-                    <option value="Transfer">
-                      Transfer
-                    </option>
-
-                    <option value="Cash">
-                      Cash
-                    </option>
-
-                    <option value="QRIS">
-                      QRIS
-                    </option>
-
-                  </select>
-
-                </div>
-
-
-                <div style={{ marginBottom: "22px" }}>
-
-                  <label
-                    style={{
-                      display: "block",
-                      marginBottom: "7px",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Catatan
-                  </label>
-
-                  <textarea
-                    name="note"
-                    value={paymentForm.note}
-                    onChange={handlePaymentChange}
-                    placeholder="Opsional"
-                    rows="3"
-                    style={{
-                      width: "100%",
-                      padding: "11px 12px",
-                      border: "1px solid #d1d5db",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      boxSizing: "border-box",
-                      resize: "vertical",
-                    }}
-                  />
-
-                </div>
-
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    gap: "10px",
-                  }}
-                >
-
-                  <button
-                    type="button"
-                    onClick={closePaymentModal}
-                    style={{
-                      border: "1px solid #d1d5db",
-                      borderRadius: "10px",
-                      padding: "11px 18px",
-                      background: "#ffffff",
-                      color: "#374151",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Batal
-                  </button>
-
-                  <button
-                    type="submit"
-                    style={{
-                      border: "none",
-                      borderRadius: "10px",
-                      padding: "11px 18px",
-                      background: "#111827",
-                      color: "#ffffff",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Simpan Pembayaran
-                  </button>
-
-                </div>
-
-              </form>
+              </button>
 
             </div>
 
+
+            {/* FORM */}
+
+            <form
+              onSubmit={
+                handleSavePayment
+              }
+            >
+
+
+              {/* MURID */}
+
+              <label>
+                Murid
+              </label>
+
+              <select
+                value={
+                  newPayment.studentId
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    studentId:
+                      e.target.value,
+
+                  })
+                }
+              >
+
+                <option value="">
+                  Pilih murid
+                </option>
+
+
+                {students.map(
+                  (student) => (
+
+                    <option
+                      key={
+                        student.id
+                      }
+                      value={
+                        student.id
+                      }
+                    >
+
+                      {student.name}
+                      {" - "}
+                      {student.className}
+
+                    </option>
+
+                  )
+                )}
+
+              </select>
+
+
+              {/* JUMLAH PERTEMUAN */}
+
+              <label>
+                Jumlah Pertemuan
+              </label>
+
+              <input
+                type="number"
+                min="1"
+                placeholder="Contoh: 10"
+                value={
+                  newPayment.meetings
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    meetings:
+                      e.target.value,
+
+                  })
+                }
+              />
+
+
+              {/* TANGGAL */}
+
+              <label>
+                Tanggal
+              </label>
+
+              <input
+                type="date"
+                value={
+                  newPayment.date
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    date:
+                      e.target.value,
+
+                  })
+                }
+              />
+
+
+              {/* NOMINAL */}
+
+              <label>
+                Nominal
+              </label>
+
+              <input
+                type="number"
+                min="1"
+                placeholder="Contoh: 500000"
+                value={
+                  newPayment.amount
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    amount:
+                      e.target.value,
+
+                  })
+                }
+              />
+
+
+              {/* METODE */}
+
+              <label>
+                Metode Pembayaran
+              </label>
+
+              <select
+                value={
+                  newPayment.method
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    method:
+                      e.target.value,
+
+                  })
+                }
+              >
+
+                <option value="Transfer">
+                  Transfer
+                </option>
+
+                <option value="Cash">
+                  Cash
+                </option>
+
+                <option value="QRIS">
+                  QRIS
+                </option>
+
+              </select>
+
+
+              {/* CATATAN */}
+
+              <label>
+                Catatan
+              </label>
+
+              <textarea
+                rows="3"
+                placeholder="Tambahkan catatan jika diperlukan..."
+                value={
+                  newPayment.note
+                }
+                onChange={(e) =>
+                  setNewPayment({
+
+                    ...newPayment,
+
+                    note:
+                      e.target.value,
+
+                  })
+                }
+              />
+
+
+              {/* BUTTON */}
+
+              <div className="modal-actions">
+
+                <button
+                  type="button"
+                  className="cancel-button"
+                  onClick={
+                    handleCloseForm
+                  }
+                >
+
+                  Batal
+
+                </button>
+
+
+                <button
+                  type="submit"
+                  className="save-button"
+                >
+
+                  Simpan Pembayaran
+
+                </button>
+
+              </div>
+
+            </form>
+
           </div>
 
-        )}
+        </div>
 
-
-      </div>
-
+      )}
 
     </DashboardLayout>
 
