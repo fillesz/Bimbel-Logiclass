@@ -47,19 +47,39 @@ function Sidebar() {
               👩‍🏫 Tutor
             </NavLink>
 
-            <NavLink to="/presensi">
+            <NavLink
+              to="/presensi"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📅 Presensi
             </NavLink>
 
-            <NavLink to="/nilai">
+            <NavLink
+              to="/nilai"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📝 Nilai
             </NavLink>
 
-            <NavLink to="/pembayaran">
+            <NavLink
+              to="/pembayaran"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               💰 Pembayaran
             </NavLink>
 
-            <NavLink to="/laporan">
+            <NavLink
+              to="/laporan"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📊 Laporan
             </NavLink>
           </>
@@ -88,15 +108,30 @@ function Sidebar() {
               👨‍🎓 Murid Saya
             </NavLink>
 
-            <NavLink to="/presensi">
+            <NavLink
+              to="/presensi"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📅 Presensi
             </NavLink>
 
-            <NavLink to="/nilai">
+            <NavLink
+              to="/nilai"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📝 Nilai
             </NavLink>
 
-            <NavLink to="/laporan">
+            <NavLink
+              to="/laporan"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📊 Laporan
             </NavLink>
           </>
@@ -116,11 +151,21 @@ function Sidebar() {
               🏠 Dashboard
             </NavLink>
 
-            <NavLink to="/laporan">
+            <NavLink
+              to="/laporan"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               📊 Laporan Anak
             </NavLink>
 
-            <NavLink to="/pembayaran">
+            <NavLink
+              to="/pembayaran"
+              className={({ isActive }) =>
+                isActive ? "active-link" : ""
+              }
+            >
               💰 Pembayaran
             </NavLink>
           </>
@@ -137,7 +182,12 @@ function Sidebar() {
 
       <nav>
 
-        <NavLink to="/setting">
+        <NavLink
+          to="/setting"
+          className={({ isActive }) =>
+            isActive ? "active-link" : ""
+          }
+        >
           ⚙ Pengaturan
         </NavLink>
 
