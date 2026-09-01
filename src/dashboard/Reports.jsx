@@ -11,6 +11,190 @@ import {
 } from "../data/packageStorage";
 
 
+// =========================
+// GRAFIK NILAI (SVG, tanpa library tambahan)
+// =========================
+
+function ScoreChart({ reports }) {
+
+  // Urutkan dari yang paling lama ke paling baru
+  // (biar garis grafiknya jalan maju sesuai waktu)
+
+  const chronological =
+    [...reports].sort(
+      (a, b) =>
+        new Date(a.date) -
+        new Date(b.date)
+    );
+
+  if (chronological.length === 0) {
+
+    return null;
+
+  }
+
+  const width = 600;
+  const height = 200;
+  const padding = 32;
+
+  const scores = chronological.map(
+    (report) => Number(report.score)
+  );
+
+  const maxScore = 100;
+  const minScore = 0;
+
+  const points = chronological.map(
+    (report, index) => {
+
+      const x =
+        chronological.length === 1
+          ? width / 2
+          : padding +
+            (index /
+              (chronological.length - 1)) *
+              (width - padding * 2);
+
+      const y =
+        height -
+        padding -
+        ((Number(report.score) - minScore) /
+          (maxScore - minScore)) *
+          (height - padding * 2);
+
+      return { x, y, report };
+
+    }
+  );
+
+  const linePath = points
+    .map(
+      (point, index) =>
+        `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
+    )
+    .join(" ");
+
+  const average = Math.round(
+    scores.reduce(
+      (total, score) => total + score,
+      0
+    ) / scores.length
+  );
+
+  return (
+
+    <div className="report-chart-card">
+
+      <div className="report-chart-header">
+
+        <strong>
+          📈 Grafik Nilai
+        </strong>
+
+        <span>
+          Rata-rata: {average}
+        </span>
+
+      </div>
+
+      <svg
+        width="100%"
+        viewBox={`0 0 ${width} ${height}`}
+      >
+
+        {/* garis bantu horizontal */}
+
+        {[0, 25, 50, 75, 100].map(
+          (gridScore) => {
+
+            const y =
+              height -
+              padding -
+              (gridScore / 100) *
+                (height - padding * 2);
+
+            return (
+
+              <g key={gridScore}>
+
+                <line
+                  x1={padding}
+                  y1={y}
+                  x2={width - padding}
+                  y2={y}
+                  stroke="#e5e5e5"
+                  strokeWidth="1"
+                />
+
+                <text
+                  x={4}
+                  y={y + 4}
+                  fontSize="10"
+                  fill="#999"
+                >
+                  {gridScore}
+                </text>
+
+              </g>
+
+            );
+
+          }
+        )}
+
+        {/* garis nilai */}
+
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#f5a623"
+          strokeWidth="2"
+        />
+
+        {/* titik + label tanggal */}
+
+        {points.map((point, index) => (
+
+          <g key={index}>
+
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="4"
+              fill="#f5a623"
+            />
+
+            <text
+              x={point.x}
+              y={height - 8}
+              fontSize="9"
+              fill="#999"
+              textAnchor="middle"
+            >
+
+              {point.report.date
+                ? point.report.date
+                    .split("-")
+                    .slice(1)
+                    .reverse()
+                    .join("/")
+                : ""}
+
+            </text>
+
+          </g>
+
+        ))}
+
+      </svg>
+
+    </div>
+
+  );
+
+}
+
+
 function Reports() {
 
   // =========================
@@ -175,6 +359,18 @@ function Reports() {
       return false;
 
     });
+
+
+  // =========================
+  // LAPORAN TERBARU DI ATAS
+  // =========================
+
+  const sortedReports =
+    [...visibleReports].sort(
+      (a, b) =>
+        new Date(b.date) -
+        new Date(a.date)
+    );
 
 
   // =========================
@@ -583,11 +779,18 @@ function Reports() {
           </div>
 
 
+          {/* GRAFIK NILAI */}
+
+          <ScoreChart
+            reports={sortedReports}
+          />
+
+
           {/* LIST LAPORAN */}
 
           <div className="report-list">
 
-            {visibleReports.length === 0 ? (
+            {sortedReports.length === 0 ? (
 
               <div className="empty-data">
 
@@ -598,7 +801,7 @@ function Reports() {
 
             ) : (
 
-              visibleReports.map(
+              sortedReports.map(
                 (report) => {
 
                   const student =
@@ -782,7 +985,7 @@ function Reports() {
 
         <div className="report-list">
 
-          {visibleReports.length === 0 ? (
+          {sortedReports.length === 0 ? (
 
             <div className="empty-data">
 
@@ -792,7 +995,7 @@ function Reports() {
 
           ) : (
 
-            visibleReports.map(
+            sortedReports.map(
               (report) => {
 
                 const student =
