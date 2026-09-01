@@ -39,6 +39,7 @@ function Students() {
       className: "",
       tutor: "",
       tutorId: "",
+      gender: "",
     });
     
 
@@ -148,6 +149,7 @@ const tutors = accounts
       className: "",
       tutor: "",
       tutorId: "",
+      gender: "",
     });
 
     setShowForm(true);
@@ -166,6 +168,7 @@ const tutors = accounts
       className: student.className,
       tutor: student.tutor || "",
       tutorId: student.tutorId || "",
+      gender: student.gender || "",
     });
 
     setShowForm(true);
@@ -182,7 +185,8 @@ const tutors = accounts
     if (
       !newStudent.name ||
       !newStudent.className ||
-      !newStudent.tutorId
+      !newStudent.tutorId ||
+      !newStudent.gender
     ) {
 
       alert(
@@ -213,6 +217,9 @@ const tutors = accounts
 
             tutorId:
               newStudent.tutorId,
+
+            gender:
+              newStudent.gender,
           }
         );
 
@@ -249,6 +256,9 @@ const tutors = accounts
         tutorId:
           newStudent.tutorId,
 
+        gender:
+          newStudent.gender,
+
         status: "Aktif",
       };
 
@@ -269,6 +279,7 @@ const tutors = accounts
       className: "",
       tutor: "",
       tutorId: "",
+      gender: "",
     });
 
     setEditingStudent(null);
@@ -620,6 +631,37 @@ const tutors = accounts
                   handleChange
                 }
               />
+
+
+              {/* JENIS KELAMIN */}
+
+              <label>
+                Jenis Kelamin
+              </label>
+
+              <select
+                name="gender"
+                value={
+                  newStudent.gender
+                }
+                onChange={
+                  handleChange
+                }
+              >
+
+                <option value="">
+                  Pilih Jenis Kelamin
+                </option>
+
+                <option value="Laki-laki">
+                  Laki-laki
+                </option>
+
+                <option value="Perempuan">
+                  Perempuan
+                </option>
+
+              </select>
 
 
               {/* KELAS */}

@@ -264,7 +264,11 @@ function Parent() {
         <div className="child-profile-card">
 
           <div className="child-avatar">
-            👧
+            {child.gender === "Laki-laki"
+              ? "👦"
+              : child.gender === "Perempuan"
+              ? "👧"
+              : "🧑‍🎓"}
           </div>
 
 
