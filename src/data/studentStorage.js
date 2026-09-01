@@ -37,6 +37,24 @@ export const getStudents = () => {
 
 
 // =========================
+// AMBIL SATU MURID BERDASARKAN ID
+// =========================
+
+export const getStudentById = (
+  studentId
+) => {
+
+  const students =
+    getStudents();
+
+  return students.find(
+    (student) =>
+      student.id === studentId
+  );
+};
+
+
+// =========================
 // SIMPAN DATA MURID
 // =========================
 
