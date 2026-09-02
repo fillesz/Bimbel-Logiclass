@@ -1,220 +1,74 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import users from "../data/users";
-import "../styles/Login.css";
-
-function Login() {
-  const navigate = useNavigate();
-
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  // =========================
-  // PROSES LOGIN
-  // =========================
-
-  const handleLogin = () => {
-    const inputUsername = username.trim();
-    const inputPassword = password.trim();
-
-    // =========================
-    // CEK INPUT
-    // =========================
-
-    if (!inputUsername || !inputPassword) {
-      alert("Username dan Password wajib diisi.");
-      return;
-    }
-
-    // =========================
-    // AMBIL AKUN DARI LOCALSTORAGE
-    // =========================
-
-    let accounts = [];
-
-    const savedAccounts =
-      localStorage.getItem("accounts");
-
-    if (savedAccounts) {
-      try {
-        const parsedAccounts =
-          JSON.parse(savedAccounts);
-
-        if (Array.isArray(parsedAccounts)) {
-          accounts = parsedAccounts;
-        }
-      } catch (error) {
-        console.error(
-          "Data accounts tidak valid:",
-          error
-        );
-      }
-    }
-
-    // =========================
-    // GABUNGKAN AKUN DEFAULT
-    // + AKUN TAMBAHAN
-    // =========================
-
-    const allUsers = [
-      ...users,
-      ...accounts,
-    ];
-
-    // =========================
-    // CARI USER
-    // =========================
-
-    const user = allUsers.find(
-      (u) =>
-        String(u.username).trim() ===
-          inputUsername &&
-        String(u.password).trim() ===
-          inputPassword
-    );
-
-    // =========================
-    // LOGIN GAGAL
-    // =========================
-
-    if (!user) {
-      alert(
-        "Username atau Password salah!"
-      );
-      return;
-    }
-
-    // =========================
-    // SIMPAN USER LOGIN
-    // =========================
-
-    localStorage.setItem(
-      "user",
-      JSON.stringify(user)
-    );
-
-    // =========================
-    // REDIRECT SESUAI ROLE
-    // =========================
-
-    switch (user.role) {
-      case "admin":
-        navigate("/admin");
-        break;
-
-      case "tutor":
-        navigate("/tutor");
-        break;
-
-      case "parent":
-        navigate("/parent");
-        break;
-
-      default:
-        alert("Role tidak dikenali.");
-    }
-  };
-
-  // =========================
-  // ENTER UNTUK LOGIN
-  // =========================
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleLogin();
-    }
-  };
-
-  return (
-    <div className="login-container">
-
-      <div className="login-card">
-
-        {/* =========================
-            LOGO / JUDUL
-        ========================= */}
-
-        <div className="login-logo">
-          📚
-        </div>
-
-        <h1>
-          Dashboard
-        </h1>
-
-        <h2>
-          LOGICLASS
-        </h2>
-
-        <p className="login-subtitle">
-          Silakan login terlebih dahulu
-        </p>
-
-
-        {/* =========================
-            USERNAME
-        ========================= */}
-
-        <div className="login-input-group">
-
-          <label>
-            Username
-          </label>
-
-          <input
-            type="text"
-            placeholder="Masukkan username"
-            value={username}
-            autoComplete="username"
-            onChange={(e) =>
-              setUsername(e.target.value)
-            }
-            onKeyDown={handleKeyDown}
-          />
-
-        </div>
-
-
-        {/* =========================
-            PASSWORD
-        ========================= */}
-
-        <div className="login-input-group">
-
-          <label>
-            Password
-          </label>
-
-          <input
-            type="password"
-            placeholder="Masukkan password"
-            value={password}
-            autoComplete="current-password"
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            onKeyDown={handleKeyDown}
-          />
-
-        </div>
-
-
-        {/* =========================
-            BUTTON
-        ========================= */}
-
-        <button
-          type="button"
-          className="login-button"
-          onClick={handleLogin}
-        >
-          Masuk
-        </button>
-
-      </div>
-
-    </div>
-  );
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f4f5f7;
+  padding: 16px;
 }
 
-export default Login;
+.login-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 40px 32px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.login-card h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.login-card h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.login-card p {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.login-card input:focus {
+  border-color: #2563eb;
+}
+
+.login-card button {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 8px;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.login-card button:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.login-card button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
