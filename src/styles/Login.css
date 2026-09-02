@@ -42,8 +42,14 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-size: 14px;
+  color: #111827;
+  background-color: #ffffff;
   outline: none;
   transition: border-color 0.15s ease;
+}
+
+.login-card input::placeholder {
+  color: #9ca3af;
 }
 
 .login-card input:focus {
