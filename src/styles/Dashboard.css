@@ -1045,14 +1045,6 @@ body {
 
 @media (max-width: 900px) {
 
-  .sidebar {
-    width: 210px;
-  }
-
-  .main-content {
-    margin-left: 210px;
-  }
-
   .summary-grid {
     grid-template-columns: 1fr;
   }
@@ -1070,18 +1062,8 @@ body {
 
 @media (max-width: 650px) {
 
-  .sidebar {
-    width: 190px;
-
-    padding: 25px 12px;
-  }
-
   .logo {
     font-size: 20px;
-  }
-
-  .main-content {
-    margin-left: 190px;
   }
 
   .navbar {
@@ -1837,12 +1819,9 @@ body {
 ========================================================= */
 
 .report-list {
-  display: grid;
-
-  grid-template-columns:
-    repeat(auto-fit, minmax(420px, 1fr));
-
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 
@@ -4342,6 +4321,69 @@ body {
   .package-period-line {
     transform: rotate(90deg);
     align-self: center;
+  }
+
+}
+
+/* =========================================================
+   HAMBURGER MENU (MOBILE)
+========================================================= */
+
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #222;
+}
+
+.sidebar-close-btn {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 900px) {
+
+  .hamburger-btn {
+    display: block;
+  }
+
+  .sidebar {
+    width: 240px;
+    padding: 30px 20px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close-btn {
+    display: block;
+    align-self: flex-end;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    margin-bottom: 10px;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .main-content {
+    margin-left: 0;
   }
 
 }

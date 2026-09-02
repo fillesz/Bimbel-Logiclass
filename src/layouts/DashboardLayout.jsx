@@ -1,23 +1,26 @@
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
+import { SidebarProvider } from "../components/SidebarContext";
 
 function DashboardLayout({ children }) {
   return (
-    <div className="dashboard-layout">
+    <SidebarProvider>
+      <div className="dashboard-layout">
 
-      <Sidebar />
+        <Sidebar />
 
-      <div className="main-content">
+        <div className="main-content">
 
-        <Navbar />
+          <Navbar />
 
-        <div className="page-content">
-          {children}
+          <div className="page-content">
+            {children}
+          </div>
+
         </div>
 
       </div>
-
-    </div>
+    </SidebarProvider>
   );
 }
 

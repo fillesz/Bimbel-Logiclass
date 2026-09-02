@@ -1,206 +1,236 @@
 import { NavLink } from "react-router-dom";
+import { useSidebar } from "./SidebarContext";
 
 function Sidebar() {
   const user = JSON.parse(localStorage.getItem("user"));
+  const { isOpen, closeSidebar } = useSidebar();
 
   return (
-    <aside className="sidebar">
+    <>
+      {/* overlay gelap saat sidebar terbuka di mobile */}
+      {isOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
 
-      <h2 className="logo">
-        📚 LOGICLASS
-      </h2>
+      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
 
-      <p className="sidebar-title">
-        MAIN
-      </p>
+        <button className="sidebar-close-btn" onClick={closeSidebar}>
+          ✕
+        </button>
 
-      <nav>
+        <h2 className="logo">
+          📚 LOGICLASS
+        </h2>
 
-        {/* ================= ADMIN ================= */}
+        <p className="sidebar-title">
+          MAIN
+        </p>
 
-        {user?.role === "admin" && (
-          <>
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              🏠 Dashboard
-            </NavLink>
+        <nav>
 
-            <NavLink
-              to="/murid"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              👨‍🎓 Murid
-            </NavLink>
+          {/* ================= ADMIN ================= */}
 
-            <NavLink
-              to="/tutor"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              👩‍🏫 Tutor
-            </NavLink>
+          {user?.role === "admin" && (
+            <>
+              <NavLink
+                to="/admin"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                🏠 Dashboard
+              </NavLink>
 
-            <NavLink
-              to="/presensi"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📅 Presensi
-            </NavLink>
+              <NavLink
+                to="/murid"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                👨‍🎓 Murid
+              </NavLink>
 
-            <NavLink
-              to="/nilai"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📝 Nilai
-            </NavLink>
+              <NavLink
+                to="/tutor"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                👩‍🏫 Tutor
+              </NavLink>
 
-            <NavLink
-              to="/pembayaran"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              💰 Pembayaran
-            </NavLink>
+              <NavLink
+                to="/presensi"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📅 Presensi
+              </NavLink>
 
-            <NavLink
-              to="/laporan"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📊 Laporan
-            </NavLink>
-          </>
-        )}
+              <NavLink
+                to="/nilai"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📝 Nilai
+              </NavLink>
 
+              <NavLink
+                to="/pembayaran"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                💰 Pembayaran
+              </NavLink>
 
-        {/* ================= TUTOR ================= */}
-
-        {user?.role === "tutor" && (
-          <>
-            <NavLink
-              to="/tutor"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              🏠 Dashboard
-            </NavLink>
-
-            <NavLink
-              to="/tutor/murid"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              👨‍🎓 Murid Saya
-            </NavLink>
-
-            <NavLink
-              to="/presensi"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📅 Presensi
-            </NavLink>
-
-            <NavLink
-              to="/nilai"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📝 Nilai
-            </NavLink>
-
-            <NavLink
-              to="/laporan"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📊 Laporan
-            </NavLink>
-          </>
-        )}
+              <NavLink
+                to="/laporan"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📊 Laporan
+              </NavLink>
+            </>
+          )}
 
 
-        {/* ================= PARENT ================= */}
+          {/* ================= TUTOR ================= */}
 
-        {user?.role === "parent" && (
-          <>
-            <NavLink
-              to="/parent"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              🏠 Dashboard
-            </NavLink>
+          {user?.role === "tutor" && (
+            <>
+              <NavLink
+                to="/tutor"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                🏠 Dashboard
+              </NavLink>
 
-            <NavLink
-              to="/laporan"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              📊 Laporan Anak
-            </NavLink>
+              <NavLink
+                to="/tutor/murid"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                👨‍🎓 Murid Saya
+              </NavLink>
 
-            <NavLink
-              to="/pembayaran"
-              className={({ isActive }) =>
-                isActive ? "active-link" : ""
-              }
-            >
-              💰 Pembayaran
-            </NavLink>
-          </>
-        )}
+              <NavLink
+                to="/presensi"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📅 Presensi
+              </NavLink>
 
-      </nav>
+              <NavLink
+                to="/nilai"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📝 Nilai
+              </NavLink>
+
+              <NavLink
+                to="/laporan"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📊 Laporan
+              </NavLink>
+            </>
+          )}
 
 
-      {/* ================= SYSTEM ================= */}
+          {/* ================= PARENT ================= */}
 
-      <p className="sidebar-title">
-        SYSTEM
-      </p>
+          {user?.role === "parent" && (
+            <>
+              <NavLink
+                to="/parent"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                🏠 Dashboard
+              </NavLink>
 
-      <nav>
+              <NavLink
+                to="/laporan"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                📊 Laporan Anak
+              </NavLink>
 
-        <NavLink
-          to="/setting"
-          className={({ isActive }) =>
-            isActive ? "active-link" : ""
-          }
-        >
-          ⚙ Pengaturan
-        </NavLink>
+              <NavLink
+                to="/pembayaran"
+                onClick={closeSidebar}
+                className={({ isActive }) =>
+                  isActive ? "active-link" : ""
+                }
+              >
+                💰 Pembayaran
+              </NavLink>
+            </>
+          )}
 
-        <NavLink
-          to="/"
-          onClick={() => localStorage.removeItem("user")}
-        >
-          🚪 Logout
-        </NavLink>
+        </nav>
 
-      </nav>
 
-    </aside>
+        {/* ================= SYSTEM ================= */}
+
+        <p className="sidebar-title">
+          SYSTEM
+        </p>
+
+        <nav>
+
+          <NavLink
+            to="/setting"
+            onClick={closeSidebar}
+            className={({ isActive }) =>
+              isActive ? "active-link" : ""
+            }
+          >
+            ⚙ Pengaturan
+          </NavLink>
+
+          <NavLink
+            to="/"
+            onClick={() => {
+              localStorage.removeItem("user");
+              closeSidebar();
+            }}
+          >
+            🚪 Logout
+          </NavLink>
+
+        </nav>
+
+      </aside>
+    </>
   );
 }
 
