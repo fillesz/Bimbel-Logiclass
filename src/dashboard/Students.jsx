@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "../layouts/DashboardLayout";
 import {
   getStudents,
@@ -16,10 +16,30 @@ function Students() {
   // =========================
   // DATA MURID
   // =========================
+  // Sekarang diambil dari Firestore
+  // lewat useEffect (async)
 
-  const [students, setStudents] = useState(
-    getStudents()
-  );
+  const [students, setStudents] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+
+    loadStudents();
+
+  }, []);
+
+  const loadStudents = async () => {
+
+    setLoading(true);
+
+    const data = await getStudents();
+
+    setStudents(data);
+
+    setLoading(false);
+
+  };
 
   const [search, setSearch] = useState("");
 
@@ -178,7 +198,7 @@ const tutors = accounts
   // SIMPAN
   // =========================
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault();
 
@@ -202,30 +222,27 @@ const tutors = accounts
 
     if (editingStudent) {
 
-      const updatedStudents =
-        updateStudent(
-          editingStudent.id,
-          {
-            name:
-              newStudent.name,
+      await updateStudent(
+        editingStudent.id,
+        {
+          name:
+            newStudent.name,
 
-            className:
-              newStudent.className,
+          className:
+            newStudent.className,
 
-            tutor:
-              newStudent.tutor,
+          tutor:
+            newStudent.tutor,
 
-            tutorId:
-              newStudent.tutorId,
+          tutorId:
+            newStudent.tutorId,
 
-            gender:
-              newStudent.gender,
-          }
-        );
-
-      setStudents(
-        updatedStudents
+          gender:
+            newStudent.gender,
+        }
       );
+
+      await loadStudents();
 
     }
 
@@ -262,12 +279,9 @@ const tutors = accounts
         status: "Aktif",
       };
 
-      const updatedStudents =
-        addStudent(student);
+      await addStudent(student);
 
-      setStudents(
-        updatedStudents
-      );
+      await loadStudents();
     }
 
     // =========================
@@ -291,7 +305,7 @@ const tutors = accounts
   // HAPUS
   // =========================
 
-  const handleDelete = (student) => {
+  const handleDelete = async (student) => {
 
     const confirmDelete =
       window.confirm(
@@ -302,14 +316,9 @@ const tutors = accounts
       return;
     }
 
-    const updatedStudents =
-      deleteStudent(
-        student.id
-      );
+    await deleteStudent(student.id);
 
-    setStudents(
-      updatedStudents
-    );
+    await loadStudents();
   };
 
   // =========================
@@ -381,6 +390,14 @@ const tutors = accounts
         ========================= */}
 
         <div className="student-table-card">
+
+          {loading ? (
+
+            <div className="empty-data">
+              Memuat data murid...
+            </div>
+
+          ) : (
 
           <table>
 
@@ -553,6 +570,8 @@ const tutors = accounts
             </tbody>
 
           </table>
+
+          )}
 
         </div>
 

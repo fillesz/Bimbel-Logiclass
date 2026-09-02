@@ -11,15 +11,37 @@ function Login() {
 
   const handleLogin = () => {
     // =========================
-    // AMBIL AKUN DARI LOCALSTORAGE
+    // BERSIHKAN INPUT
     // =========================
+
+    const inputUsername = username.trim();
+    const inputPassword = password.trim();
+
+    // =========================
+    // AMBIL AKUN TAMBAHAN
+    // =========================
+
+    let accounts = [];
 
     const savedAccounts =
       localStorage.getItem("accounts");
 
-    const accounts = savedAccounts
-      ? JSON.parse(savedAccounts)
-      : [];
+    if (savedAccounts) {
+      try {
+        accounts = JSON.parse(savedAccounts);
+
+        if (!Array.isArray(accounts)) {
+          accounts = [];
+        }
+      } catch (error) {
+        console.error(
+          "Data accounts rusak:",
+          error
+        );
+
+        accounts = [];
+      }
+    }
 
     // =========================
     // GABUNGKAN AKUN
@@ -36,8 +58,8 @@ function Login() {
 
     const user = allUsers.find(
       (u) =>
-        u.username === username &&
-        u.password === password
+        u.username === inputUsername &&
+        u.password === inputPassword
     );
 
     // =========================
@@ -45,7 +67,9 @@ function Login() {
     // =========================
 
     if (!user) {
-      alert("Username atau Password salah!");
+      alert(
+        "Username atau Password salah!"
+      );
       return;
     }
 
@@ -59,7 +83,7 @@ function Login() {
     );
 
     // =========================
-    // REDIRECT BERDASARKAN ROLE
+    // REDIRECT
     // =========================
 
     switch (user.role) {
@@ -76,7 +100,7 @@ function Login() {
         break;
 
       default:
-        alert("Role tidak dikenali");
+        alert("Role tidak dikenali.");
     }
   };
 
@@ -85,10 +109,13 @@ function Login() {
 
       <div className="login-card">
 
-        <h1 style={{ fontSize: '25px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-  📚 Dashboard
-</h1>
-<h2 style={{ fontSize: '20px' }}>LOGICLASS</h2>
+        <h1>
+          📚 Dashboard
+        </h1>
+
+        <h2>
+          LOGICLASS
+        </h2>
 
         <p>
           Silakan login terlebih dahulu
@@ -112,7 +139,9 @@ function Login() {
           }
         />
 
-        <button onClick={handleLogin}>
+        <button
+          onClick={handleLogin}
+        >
           Masuk
         </button>
 

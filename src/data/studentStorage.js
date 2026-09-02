@@ -1,38 +1,34 @@
-import studentData from "./studentData";
+import { db } from "../firebase";
 
-const STUDENT_STORAGE_KEY = "students";
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
+
+const STUDENTS_COLLECTION = "students";
 
 
 // =========================
-// AMBIL DATA MURID
+// AMBIL SEMUA DATA MURID
 // =========================
+// Sekarang berupa fungsi ASYNC
+// (harus dipanggil dengan "await" atau ".then()")
 
-export const getStudents = () => {
-  const savedStudents =
-    localStorage.getItem(
-      STUDENT_STORAGE_KEY
-    );
+export const getStudents = async () => {
 
-  if (savedStudents) {
-    try {
-      return JSON.parse(savedStudents);
-    } catch (error) {
-      console.error(
-        "Data murid tidak valid:",
-        error
-      );
-    }
-  }
-
-  // Jika belum ada data di localStorage,
-  // gunakan data awal
-
-  localStorage.setItem(
-    STUDENT_STORAGE_KEY,
-    JSON.stringify(studentData)
+  const snapshot = await getDocs(
+    collection(db, STUDENTS_COLLECTION)
   );
 
-  return studentData;
+  return snapshot.docs.map((docSnap) => ({
+    ...docSnap.data(),
+    id: docSnap.id,
+  }));
+
 };
 
 
@@ -40,55 +36,38 @@ export const getStudents = () => {
 // AMBIL SATU MURID BERDASARKAN ID
 // =========================
 
-export const getStudentById = (
+export const getStudentById = async (
   studentId
 ) => {
 
-  const students =
-    getStudents();
+  const students = await getStudents();
 
   return students.find(
-    (student) =>
-      student.id === studentId
+    (student) => student.id === studentId
   );
-};
 
-
-// =========================
-// SIMPAN DATA MURID
-// =========================
-
-export const saveStudents = (
-  students
-) => {
-  localStorage.setItem(
-    STUDENT_STORAGE_KEY,
-    JSON.stringify(students)
-  );
 };
 
 
 // =========================
 // TAMBAH MURID
 // =========================
+// ID murid (LG001, LG002, dst) tetap kita
+// yang tentukan sendiri, supaya format ID
+// lama tidak berubah. Makanya pakai setDoc
+// dengan ID spesifik, bukan addDoc.
 
-export const addStudent = (
-  student
-) => {
+export const addStudent = async (student) => {
 
-  const students =
-    getStudents();
+  const { id, ...studentData } = student;
 
-  const updatedStudents = [
-    ...students,
-    student,
-  ];
-
-  saveStudents(
-    updatedStudents
+  await setDoc(
+    doc(db, STUDENTS_COLLECTION, id),
+    studentData
   );
 
-  return updatedStudents;
+  return getStudents();
+
 };
 
 
@@ -96,30 +75,18 @@ export const addStudent = (
 // UPDATE MURID
 // =========================
 
-export const updateStudent = (
+export const updateStudent = async (
   studentId,
   updatedData
 ) => {
 
-  const students =
-    getStudents();
-
-  const updatedStudents =
-    students.map(
-      (student) =>
-        student.id === studentId
-          ? {
-              ...student,
-              ...updatedData,
-            }
-          : student
-    );
-
-  saveStudents(
-    updatedStudents
+  await updateDoc(
+    doc(db, STUDENTS_COLLECTION, studentId),
+    updatedData
   );
 
-  return updatedStudents;
+  return getStudents();
+
 };
 
 
@@ -127,22 +94,14 @@ export const updateStudent = (
 // HAPUS MURID
 // =========================
 
-export const deleteStudent = (
+export const deleteStudent = async (
   studentId
 ) => {
 
-  const students =
-    getStudents();
-
-  const updatedStudents =
-    students.filter(
-      (student) =>
-        student.id !== studentId
-    );
-
-  saveStudents(
-    updatedStudents
+  await deleteDoc(
+    doc(db, STUDENTS_COLLECTION, studentId)
   );
 
-  return updatedStudents;
+  return getStudents();
+
 };

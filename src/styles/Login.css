@@ -1,106 +1,220 @@
-/* Reset */
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial, Helvetica, sans-serif;
-}
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import users from "../data/users";
+import "../styles/Login.css";
 
-/* Background */
-.login-container{
-    width:100%;
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background:#eef3ff;
-}
+function Login() {
+  const navigate = useNavigate();
 
-/* Card Login */
-.login-card{
-    width:400px;
-    background:#ffffff;
-    padding:40px 35px;
-    border-radius:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,0.1);
-    text-align:center;
-}
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
-/* Judul */
-.title-container h1{
-    font-size:45px !important;
-    color:#2563eb;
-    margin:0;
-    line-height:1.1;
-    font-weight:700;
-}
+  // =========================
+  // PROSES LOGIN
+  // =========================
 
-.title-container h2{
-    font-size:40px !important;
-    color:#f6d710;
-    margin:0 0 18px;
-    line-height:1.1;
-    font-weight:700;
-    letter-spacing:2px;
-}
+  const handleLogin = () => {
+    const inputUsername = username.trim();
+    const inputPassword = password.trim();
 
-/* Subtitle */
-.login-card p{
-    color:#666;
-    margin-bottom:25px;
-    font-size:15px;
-}
+    // =========================
+    // CEK INPUT
+    // =========================
 
-/* Input */
-.login-card input{
-    width:100%;
-    padding:14px;
-    margin-bottom:16px;
-    border:1px solid #d9d9d9;
-    border-radius:10px;
-    font-size:15px;
-    outline:none;
-    transition:.3s;
-}
-
-.login-card input:focus{
-    border-color:#2563eb;
-    box-shadow:0 0 8px rgba(37,99,235,.2);
-}
-
-/* Tombol */
-.login-card button{
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:10px;
-    background:#2563eb;
-    color:white;
-    font-size:16px;
-    font-weight:bold;
-    cursor:pointer;
-    transition:.3s;
-}
-
-.login-card button:hover{
-    background:#1d4ed8;
-    transform:translateY(-2px);
-}
-
-/* Responsive */
-@media (max-width:480px){
-
-    .login-card{
-        width:90%;
-        padding:30px 25px;
+    if (!inputUsername || !inputPassword) {
+      alert("Username dan Password wajib diisi.");
+      return;
     }
 
-    .login-card h1{
-        font-size:30px;
+    // =========================
+    // AMBIL AKUN DARI LOCALSTORAGE
+    // =========================
+
+    let accounts = [];
+
+    const savedAccounts =
+      localStorage.getItem("accounts");
+
+    if (savedAccounts) {
+      try {
+        const parsedAccounts =
+          JSON.parse(savedAccounts);
+
+        if (Array.isArray(parsedAccounts)) {
+          accounts = parsedAccounts;
+        }
+      } catch (error) {
+        console.error(
+          "Data accounts tidak valid:",
+          error
+        );
+      }
     }
 
-    .login-card h2{
-        font-size:24px;
+    // =========================
+    // GABUNGKAN AKUN DEFAULT
+    // + AKUN TAMBAHAN
+    // =========================
+
+    const allUsers = [
+      ...users,
+      ...accounts,
+    ];
+
+    // =========================
+    // CARI USER
+    // =========================
+
+    const user = allUsers.find(
+      (u) =>
+        String(u.username).trim() ===
+          inputUsername &&
+        String(u.password).trim() ===
+          inputPassword
+    );
+
+    // =========================
+    // LOGIN GAGAL
+    // =========================
+
+    if (!user) {
+      alert(
+        "Username atau Password salah!"
+      );
+      return;
     }
 
+    // =========================
+    // SIMPAN USER LOGIN
+    // =========================
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(user)
+    );
+
+    // =========================
+    // REDIRECT SESUAI ROLE
+    // =========================
+
+    switch (user.role) {
+      case "admin":
+        navigate("/admin");
+        break;
+
+      case "tutor":
+        navigate("/tutor");
+        break;
+
+      case "parent":
+        navigate("/parent");
+        break;
+
+      default:
+        alert("Role tidak dikenali.");
+    }
+  };
+
+  // =========================
+  // ENTER UNTUK LOGIN
+  // =========================
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleLogin();
+    }
+  };
+
+  return (
+    <div className="login-container">
+
+      <div className="login-card">
+
+        {/* =========================
+            LOGO / JUDUL
+        ========================= */}
+
+        <div className="login-logo">
+          📚
+        </div>
+
+        <h1>
+          Dashboard
+        </h1>
+
+        <h2>
+          LOGICLASS
+        </h2>
+
+        <p className="login-subtitle">
+          Silakan login terlebih dahulu
+        </p>
+
+
+        {/* =========================
+            USERNAME
+        ========================= */}
+
+        <div className="login-input-group">
+
+          <label>
+            Username
+          </label>
+
+          <input
+            type="text"
+            placeholder="Masukkan username"
+            value={username}
+            autoComplete="username"
+            onChange={(e) =>
+              setUsername(e.target.value)
+            }
+            onKeyDown={handleKeyDown}
+          />
+
+        </div>
+
+
+        {/* =========================
+            PASSWORD
+        ========================= */}
+
+        <div className="login-input-group">
+
+          <label>
+            Password
+          </label>
+
+          <input
+            type="password"
+            placeholder="Masukkan password"
+            value={password}
+            autoComplete="current-password"
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+            onKeyDown={handleKeyDown}
+          />
+
+        </div>
+
+
+        {/* =========================
+            BUTTON
+        ========================= */}
+
+        <button
+          type="button"
+          className="login-button"
+          onClick={handleLogin}
+        >
+          Masuk
+        </button>
+
+      </div>
+
+    </div>
+  );
 }
+
+export default Login;
