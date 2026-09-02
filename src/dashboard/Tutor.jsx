@@ -1,10 +1,12 @@
 import DashboardLayout from "../layouts/DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-import { studentData } from "../data/studentData";
+import { getStudents } from "../data/studentStorage";
+
+import { getReports } from "../data/reportStorage";
 
 import {
-  getPackageByStudent,
+  getPackages,
   getRemainingMeetings,
   getPackageStatus,
 } from "../data/packageStorage";
@@ -22,12 +24,73 @@ function Tutor() {
 
 
   // =========================
-  // DATA MURID
+  // DATA MURID / LAPORAN / PAKET
+  // =========================
+  // Semuanya dari Firestore sekarang, jadi
+  // diambil lewat useEffect (async). "packages"
+  // diambil sekaligus (bukan per-murid) supaya
+  // render list murid bisa cari paket secara
+  // SYNC dari state, tanpa await di tengah JSX.
+
+  const [students, setStudents] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [packages, setPackages] = useState([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+
+    const loadData = async () => {
+
+      setIsLoading(true);
+
+      try {
+
+        const [
+          studentsData,
+          reportsData,
+          packagesData,
+        ] = await Promise.all([
+          getStudents(),
+          getReports(),
+          getPackages(),
+        ]);
+
+        setStudents(studentsData);
+        setReports(reportsData);
+        setPackages(packagesData);
+
+      } catch (error) {
+
+        console.error(
+          "Gagal memuat data dashboard tutor:",
+          error
+        );
+
+      } finally {
+
+        setIsLoading(false);
+
+      }
+
+    };
+
+    loadData();
+
+  }, []);
+
+
+  // =========================
+  // CARI PAKET MURID (SYNC, DARI STATE)
   // =========================
 
-  const [students] = useState(
-    studentData
-  );
+  const getStudentPackage = (studentId) => {
+
+    return packages.find(
+      (pkg) => pkg.studentId === studentId
+    );
+
+  };
 
 
   // =========================
@@ -43,49 +106,11 @@ function Tutor() {
 
 
   // =========================
-  // DATA LAPORAN
-  // =========================
-
-  const reports = JSON.parse(
-    localStorage.getItem("reports") || "[]"
-  );
-
-
-  // =========================
   // TOTAL MURID
   // =========================
 
   const totalStudents =
     myStudents.length;
-
-
-  // =========================
-  // TOTAL PRESENSI
-  // =========================
-
-  const totalAttendance =
-    myStudents.reduce(
-      (total, student) => {
-
-        const studentReports =
-          reports.filter(
-            (report) =>
-              report.studentId ===
-              student.id
-          );
-
-        const hadir =
-          studentReports.filter(
-            (report) =>
-              report.attendance ===
-              "Hadir"
-          ).length;
-
-        return total + hadir;
-
-      },
-      0
-    );
 
 
   // =========================
@@ -173,7 +198,7 @@ function Tutor() {
       .map((report) => {
 
         const student =
-          studentData.find(
+          students.find(
             (item) =>
               item.id ===
               report.studentId
@@ -212,7 +237,7 @@ function Tutor() {
       .map((report) => {
 
         const student =
-          studentData.find(
+          students.find(
             (item) =>
               item.id ===
               report.studentId
@@ -230,6 +255,31 @@ function Tutor() {
         };
 
       });
+
+
+  // =========================
+  // LOADING STATE
+  // =========================
+
+  if (isLoading) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="tutor-dashboard">
+
+          <div className="empty-data">
+            Memuat data dashboard...
+          </div>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
 
 
   return (
@@ -364,7 +414,7 @@ function Tutor() {
                 (student) => {
 
                   const packageItem =
-                    getPackageByStudent(
+                    getStudentPackage(
                       student.id
                     );
 

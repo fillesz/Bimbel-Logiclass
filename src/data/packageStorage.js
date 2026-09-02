@@ -1,73 +1,78 @@
-import packageData from "./packageData";
+import { db } from "../firebase";
+
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+
+const PACKAGES_COLLECTION = "packages";
+
 
 // =========================
-// STORAGE KEY
+// AMBIL SEMUA PAKET
 // =========================
+// Dipakai kalau butuh data paket
+// banyak murid sekaligus (misalnya
+// buat dropdown di form laporan)
 
-const PACKAGE_STORAGE_KEY = "packages";
+export const getPackages = async () => {
 
-// =========================
-// GET PACKAGES
-// =========================
-
-export const getPackages = () => {
-  const savedPackages =
-    localStorage.getItem(PACKAGE_STORAGE_KEY);
-
-  if (savedPackages) {
-    try {
-      return JSON.parse(savedPackages);
-    } catch (error) {
-      console.error(
-        "Data paket di localStorage rusak:",
-        error
-      );
-    }
-  }
-
-  localStorage.setItem(
-    PACKAGE_STORAGE_KEY,
-    JSON.stringify(packageData)
+  const snapshot = await getDocs(
+    collection(db, PACKAGES_COLLECTION)
   );
 
-  return packageData;
+  return snapshot.docs.map((docSnap) => ({
+    ...docSnap.data(),
+    studentId: docSnap.id,
+  }));
+
 };
 
-// =========================
-// SAVE PACKAGES
-// =========================
-
-export const savePackages = (packages) => {
-  localStorage.setItem(
-    PACKAGE_STORAGE_KEY,
-    JSON.stringify(packages)
-  );
-};
 
 // =========================
-// GET PACKAGE BY STUDENT
+// AMBIL PAKET SATU MURID
 // =========================
 
-export const getPackageByStudent = (
+export const getPackageByStudent = async (
   studentId
 ) => {
-  const packages = getPackages();
 
-  return packages.find(
-    (pkg) =>
-      pkg.studentId === studentId
+  const docSnap = await getDoc(
+    doc(db, PACKAGES_COLLECTION, studentId)
   );
+
+  if (!docSnap.exists()) {
+
+    return null;
+
+  }
+
+  return {
+    ...docSnap.data(),
+    studentId: docSnap.id,
+  };
+
 };
+
 
 // =========================
 // HITUNG SISA PERTEMUAN
 // =========================
+// Fungsi murni, tidak perlu Firestore,
+// jadi tetap sinkron seperti sebelumnya
 
 export const getRemainingMeetings = (
   packageItem
 ) => {
+
   if (!packageItem) {
+
     return 0;
+
   }
 
   return Math.max(
@@ -75,19 +80,24 @@ export const getRemainingMeetings = (
       packageItem.usedMeetings,
     0
   );
+
 };
+
 
 // =========================
 // STATUS PAKET
 // =========================
+// Fungsi murni juga, tetap sinkron
 
 export const getPackageStatus = (
   packageItem
 ) => {
+
   const remaining =
     getRemainingMeetings(packageItem);
 
   if (remaining === 0) {
+
     return {
       status: "expired",
       label: "Paket Habis",
@@ -95,9 +105,11 @@ export const getPackageStatus = (
       color: "red",
       canTeach: false,
     };
+
   }
 
   if (remaining === 1) {
+
     return {
       status: "warning",
       label: "Hampir Habis",
@@ -105,6 +117,7 @@ export const getPackageStatus = (
       color: "yellow",
       canTeach: true,
     };
+
   }
 
   return {
@@ -114,33 +127,58 @@ export const getPackageStatus = (
     color: "green",
     canTeach: true,
   };
+
 };
+
+
+// =========================
+// AKTIFKAN / RESET PAKET
+// =========================
+// Dipanggil saat pembayaran baru dicatat.
+// Membuat paket baru untuk murid tersebut,
+// atau menimpa paket lama kalau sudah ada
+// (usedMeetings selalu direset ke 0).
+
+export const activatePackage = async (
+  studentId,
+  { packageName, totalMeetings, startDate }
+) => {
+
+  await setDoc(
+    doc(db, PACKAGES_COLLECTION, studentId),
+    {
+      packageName,
+      totalMeetings,
+      usedMeetings: 0,
+      startDate,
+    }
+  );
+
+  return getPackageByStudent(studentId);
+
+};
+
 
 // =========================
 // TAMBAH 1 PERTEMUAN
 // =========================
 
-export const useOneMeeting = (
+export const useOneMeeting = async (
   studentId
 ) => {
-  const packages = getPackages();
 
-  const packageIndex =
-    packages.findIndex(
-      (pkg) =>
-        pkg.studentId === studentId
-    );
+  const currentPackage =
+    await getPackageByStudent(studentId);
 
-  if (packageIndex === -1) {
+  if (!currentPackage) {
+
     return {
       success: false,
       message:
         "Paket murid tidak ditemukan.",
     };
-  }
 
-  const currentPackage =
-    packages[packageIndex];
+  }
 
   const remaining =
     getRemainingMeetings(
@@ -149,27 +187,29 @@ export const useOneMeeting = (
 
   // Paket sudah habis
   if (remaining <= 0) {
+
     return {
       success: false,
       message:
         "Paket murid sudah habis. Tutor tidak dapat mengajar.",
     };
+
   }
+
+  const newUsedMeetings =
+    currentPackage.usedMeetings + 1;
+
+  await updateDoc(
+    doc(db, PACKAGES_COLLECTION, studentId),
+    {
+      usedMeetings: newUsedMeetings,
+    }
+  );
 
   const updatedPackage = {
     ...currentPackage,
-    usedMeetings:
-      currentPackage.usedMeetings + 1,
+    usedMeetings: newUsedMeetings,
   };
-
-  const updatedPackages = [
-    ...packages,
-  ];
-
-  updatedPackages[packageIndex] =
-    updatedPackage;
-
-  savePackages(updatedPackages);
 
   return {
     success: true,
@@ -181,4 +221,5 @@ export const useOneMeeting = (
         updatedPackage
       ),
   };
+
 };

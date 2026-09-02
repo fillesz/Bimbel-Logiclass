@@ -1,8 +1,8 @@
 import DashboardLayout from "../layouts/DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { getStudents } from "../data/studentStorage";
-import { reportData } from "../data/reportData";
+import { getReports } from "../data/reportStorage";
 
 
 function Scores() {
@@ -17,43 +17,39 @@ function Scores() {
 
 
   // =========================
-  // DATA MURID
+  // DATA MURID & LAPORAN
   // =========================
+  // Sekarang diambil dari Firestore
 
-  const students = getStudents();
+  const [students, setStudents] = useState([]);
 
+  const [reports, setReports] = useState([]);
 
-  // =========================
-  // DATA LAPORAN
-  // =========================
+  const [loadingData, setLoadingData] =
+    useState(true);
 
-  const [reports] = useState(() => {
+  useEffect(() => {
 
-    const savedReports =
-      localStorage.getItem("reports");
+    loadData();
 
-    if (savedReports) {
+  }, []);
 
-      try {
+  const loadData = async () => {
 
-        return JSON.parse(
-          savedReports
-        );
+    setLoadingData(true);
 
-      } catch (error) {
+    const [studentsData, reportsData] =
+      await Promise.all([
+        getStudents(),
+        getReports(),
+      ]);
 
-        console.error(
-          "Data laporan rusak:",
-          error
-        );
+    setStudents(studentsData);
+    setReports(reportsData);
 
-      }
+    setLoadingData(false);
 
-    }
-
-    return reportData;
-
-  });
+  };
 
 
   // =========================
@@ -279,6 +275,31 @@ function Scores() {
     ).length;
 
   };
+
+
+  // =========================
+  // SEDANG MEMUAT
+  // =========================
+
+  if (loadingData) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="scores-page">
+
+          <div className="empty-data">
+            Memuat data nilai...
+          </div>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
 
 
   // =========================

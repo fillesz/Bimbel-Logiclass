@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
+
+import { getStudentById } from "../data/studentStorage";
+import { getReports } from "../data/reportStorage";
+
 
 function StudentDetail() {
 
@@ -9,57 +13,126 @@ function StudentDetail() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // DATA SEMENTARA
-  const [students] = useState([
-    {
-      id: "LG001",
-      name: "Aisyah",
-      className: "6 SD",
-      tutor: "Kak Bara",
-      tutorId: "T001",
-      status: "Aktif",
-      attendance: 95,
-      averageScore: 88,
-    },
 
-    {
-      id: "LG002",
-      name: "Fajar",
-      className: "7 SMP",
-      tutor: "Kak Rani",
-      tutorId: "T002",
-      status: "Aktif",
-      attendance: 90,
-      averageScore: 84,
-    },
+  // =========================
+  // DATA MURID & LAPORAN
+  // =========================
+  // Sekarang diambil dari Firestore
 
-    {
-      id: "LG003",
-      name: "Nabila",
-      className: "9 SMP",
-      tutor: "Kak Bara",
-      tutorId: "T001",
-      status: "Aktif",
-      attendance: 89,
-      averageScore: 86,
-    },
+  const [student, setStudent] = useState(null);
 
-    {
-      id: "LG004",
-      name: "Rafa",
-      className: "8 SMP",
-      tutor: "Kak Rani",
-      tutorId: "T002",
-      status: "Aktif",
-      attendance: 92,
-      averageScore: 90,
-    },
-  ]);
+  const [reports, setReports] = useState([]);
 
-  // Cari murid berdasarkan ID
-  const student = students.find(
-    (item) => item.id === studentId
+  const [isLoading, setIsLoading] = useState(true);
+
+
+  useEffect(() => {
+
+    const loadData = async () => {
+
+      setIsLoading(true);
+
+      try {
+
+        const [studentData, allReports] =
+          await Promise.all([
+            getStudentById(studentId),
+            getReports(),
+          ]);
+
+        setStudent(studentData || null);
+
+        setReports(
+          allReports.filter(
+            (report) =>
+              report.studentId === studentId
+          )
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Gagal memuat detail murid:",
+          error
+        );
+
+      } finally {
+
+        setIsLoading(false);
+
+      }
+
+    };
+
+    loadData();
+
+  }, [studentId]);
+
+
+  // =========================
+  // HITUNG PRESENSI
+  // =========================
+
+  const totalAttendance = reports.length;
+
+  const totalPresent = reports.filter(
+    (report) => report.attendance === "Hadir"
+  ).length;
+
+  const attendance =
+    totalAttendance > 0
+      ? Math.round(
+          (totalPresent / totalAttendance) * 100
+        )
+      : 0;
+
+
+  // =========================
+  // HITUNG RATA-RATA NILAI
+  // =========================
+  // Hanya laporan dengan kehadiran "Hadir"
+  // yang dihitung (sama seperti Scores.jsx)
+
+  const scoreReports = reports.filter(
+    (report) => report.attendance === "Hadir"
   );
+
+  const averageScore =
+    scoreReports.length > 0
+      ? Math.round(
+          scoreReports.reduce(
+            (total, report) =>
+              total + Number(report.score || 0),
+            0
+          ) / scoreReports.length
+        )
+      : 0;
+
+
+  // =========================
+  // LOADING STATE
+  // =========================
+
+  if (isLoading) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="student-detail-page">
+
+          <div className="empty-data">
+            Memuat detail murid...
+          </div>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
+
 
   // Kalau murid tidak ditemukan
   if (!student) {
@@ -153,7 +226,7 @@ function StudentDetail() {
             </p>
 
             <span className="status-active">
-              {student.status}
+              {student.status || "Aktif"}
             </span>
 
           </div>
@@ -173,7 +246,7 @@ function StudentDetail() {
               <small>Presensi</small>
 
               <strong>
-                {student.attendance}%
+                {attendance}%
               </strong>
             </div>
 
@@ -188,7 +261,7 @@ function StudentDetail() {
               <small>Rata-rata Nilai</small>
 
               <strong>
-                {student.averageScore}
+                {averageScore}
               </strong>
             </div>
 
@@ -226,7 +299,7 @@ function StudentDetail() {
               <span>Kehadiran</span>
 
               <strong>
-                {student.attendance}%
+                {attendance}%
               </strong>
             </div>
 
@@ -235,7 +308,7 @@ function StudentDetail() {
               <div
                 className="progress-fill"
                 style={{
-                  width: `${student.attendance}%`
+                  width: `${attendance}%`
                 }}
               />
 
@@ -257,7 +330,7 @@ function StudentDetail() {
           <div className="score-box">
 
             <strong>
-              {student.averageScore}
+              {averageScore}
             </strong>
 
             <span>

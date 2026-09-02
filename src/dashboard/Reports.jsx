@@ -1,11 +1,16 @@
 import DashboardLayout from "../layouts/DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { getStudents } from "../data/studentStorage";
-import { reportData } from "../data/reportData";
 
 import {
-  getPackageByStudent,
+  getReports,
+  addReport,
+  deleteReport,
+} from "../data/reportStorage";
+
+import {
+  getPackages,
   getPackageStatus,
   useOneMeeting,
 } from "../data/packageStorage";
@@ -207,48 +212,45 @@ function Reports() {
 
 
   // =========================
-  // DATA MURID
+  // DATA MURID / LAPORAN / PAKET
   // =========================
+  // Semuanya diambil dari Firestore.
+  // "packages" ditambahkan di sini supaya
+  // render (dropdown & info paket) bisa
+  // baca status paket secara SYNC dari state,
+  // tanpa perlu await di tengah JSX.
 
-  const students = getStudents();
+  const [students, setStudents] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [packages, setPackages] = useState([]);
 
+  const [loadingData, setLoadingData] =
+    useState(true);
 
-  // =========================
-  // DATA LAPORAN
-  // =========================
+  useEffect(() => {
 
-  const [reports, setReports] = useState(() => {
+    loadData();
 
-    const savedReports =
-      localStorage.getItem("reports");
+  }, []);
 
-    if (savedReports) {
+  const loadData = async () => {
 
-      try {
+    setLoadingData(true);
 
-        return JSON.parse(
-          savedReports
-        );
+    const [studentsData, reportsData, packagesData] =
+      await Promise.all([
+        getStudents(),
+        getReports(),
+        getPackages(),
+      ]);
 
-      } catch (error) {
+    setStudents(studentsData);
+    setReports(reportsData);
+    setPackages(packagesData);
 
-        console.error(
-          "Data laporan rusak:",
-          error
-        );
+    setLoadingData(false);
 
-      }
-
-    }
-
-    localStorage.setItem(
-      "reports",
-      JSON.stringify(reportData)
-    );
-
-    return reportData;
-
-  });
+  };
 
 
   // =========================
@@ -256,6 +258,9 @@ function Reports() {
   // =========================
 
   const [showForm, setShowForm] =
+    useState(false);
+
+  const [isSaving, setIsSaving] =
     useState(false);
 
 
@@ -388,6 +393,24 @@ function Reports() {
 
 
   // =========================
+  // CARI PAKET MURID (SYNC, DARI STATE)
+  // =========================
+  // getPackageByStudent() di packageStorage.js
+  // itu async (fetch ke Firestore). Untuk render
+  // (dropdown, info paket) kita tidak bisa await
+  // di tengah JSX, jadi cari dari state "packages"
+  // yang sudah diambil di loadData().
+
+  const getStudentPackage = (studentId) => {
+
+    return packages.find(
+      (pkg) => pkg.studentId === studentId
+    );
+
+  };
+
+
+  // =========================
   // FORMAT TANGGAL
   // =========================
 
@@ -420,7 +443,7 @@ function Reports() {
   // TAMBAH LAPORAN
   // =========================
 
-  const handleAddReport = (e) => {
+  const handleAddReport = async (e) => {
 
     e.preventDefault();
 
@@ -494,11 +517,11 @@ function Reports() {
 
 
     // =========================
-    // CEK PAKET
+    // CEK PAKET (dari state, untuk validasi awal)
     // =========================
 
     const studentPackage =
-      getPackageByStudent(
+      getStudentPackage(
         newReport.studentId
       );
 
@@ -578,129 +601,123 @@ function Reports() {
     };
 
 
-    // =========================
-    // UPDATE LAPORAN
-    // =========================
+    setIsSaving(true);
 
-    const updatedReports = [
-
-      ...reports,
-
-      newReportData,
-
-    ];
+    try {
 
 
-    // =========================
-    // PAKET BERKURANG
-    // =========================
-    //
-    // Hanya dikurangi kalau
-    // pembelajaran benar-benar berlangsung.
-    //
-    // Hadir = paket berkurang
-    // Izin  = tidak berkurang
-    // Sakit = tidak berkurang
-    // Alpa  = tidak berkurang
-    //
+      // =========================
+      // PAKET BERKURANG
+      // =========================
+      //
+      // Hanya dikurangi kalau
+      // pembelajaran benar-benar berlangsung.
+      //
+      // Hadir = paket berkurang
+      // Izin  = tidak berkurang
+      // Sakit = tidak berkurang
+      // Alpa  = tidak berkurang
+      //
+      // useOneMeeting() itu ASYNC dan sudah
+      // ambil data paket paling baru dari
+      // Firestore sendiri (bukan dari state),
+      // jadi aman dari data basi.
 
-    if (
-      newReport.attendance ===
-      "Hadir"
-    ) {
+      let remainingAfterSave = null;
 
-      const packageResult =
-        useOneMeeting(
-          newReport.studentId
-        );
+      if (
+        newReport.attendance ===
+        "Hadir"
+      ) {
+
+        const packageResult =
+          await useOneMeeting(
+            newReport.studentId
+          );
 
 
-      // Kalau gagal mengurangi paket
-      if (!packageResult.success) {
+        // Kalau gagal mengurangi paket
+        if (!packageResult.success) {
 
-        alert(
-          packageResult.message
-        );
+          alert(
+            packageResult.message
+          );
 
-        return;
+          return;
+
+        }
+
+        remainingAfterSave =
+          packageResult.remaining;
 
       }
 
-    }
+
+      // =========================
+      // SIMPAN LAPORAN KE FIRESTORE
+      // =========================
+
+      await addReport(newReportData);
+
+      await loadData();
 
 
-    // =========================
-    // SIMPAN LAPORAN
-    // =========================
+      // =========================
+      // RESET FORM
+      // =========================
 
-    setReports(
-      updatedReports
-    );
+      setNewReport({
 
+        studentId: "",
+        date: "",
+        subject: "",
+        material: "",
+        score: "",
+        attendance: "Hadir",
+        tutorNote: "",
+        recommendation: "",
 
-    localStorage.setItem(
-      "reports",
-      JSON.stringify(
-        updatedReports
-      )
-    );
-
-
-    // =========================
-    // RESET FORM
-    // =========================
-
-    setNewReport({
-
-      studentId: "",
-      date: "",
-      subject: "",
-      material: "",
-      score: "",
-      attendance: "Hadir",
-      tutorNote: "",
-      recommendation: "",
-
-    });
+      });
 
 
-    setShowForm(false);
+      setShowForm(false);
 
 
-    // =========================
-    // PESAN BERHASIL
-    // =========================
+      // =========================
+      // PESAN BERHASIL
+      // =========================
 
-    if (
-      newReport.attendance ===
-      "Hadir"
-    ) {
+      if (
+        newReport.attendance ===
+        "Hadir"
+      ) {
 
-      const updatedPackage =
-        getPackageByStudent(
-          newReport.studentId
+        alert(
+          `Laporan berhasil ditambahkan.\n\nSisa paket ${selectedStudent.name}: ${remainingAfterSave} pertemuan.`
         );
 
+      } else {
 
-      const remaining =
-        updatedPackage
-          ? Math.max(
-              updatedPackage.totalMeetings -
-                updatedPackage.usedMeetings,
-              0
-            )
-          : 0;
+        alert(
+          "Laporan berhasil ditambahkan.\n\nKarena murid tidak hadir, paket tidak dikurangi."
+        );
 
+      }
 
-      alert(
-        `Laporan berhasil ditambahkan.\n\nSisa paket ${selectedStudent.name}: ${remaining} pertemuan.`
+    } catch (error) {
+
+      console.error(
+        "Gagal menyimpan laporan:",
+        error
       );
 
-    } else {
-
       alert(
-        "Laporan berhasil ditambahkan.\n\nKarena murid tidak hadir, paket tidak dikurangi."
+        "Terjadi kesalahan saat menyimpan laporan. Silakan coba lagi."
       );
+
+    } finally {
+
+      setIsSaving(false);
 
     }
 
@@ -711,7 +728,7 @@ function Reports() {
   // HAPUS LAPORAN
   // =========================
 
-  const handleDeleteReport = (id) => {
+  const handleDeleteReport = async (id) => {
 
     const confirmDelete =
       window.confirm(
@@ -725,27 +742,51 @@ function Reports() {
 
     }
 
+    try {
 
-    const updatedReports =
-      reports.filter(
-        (report) =>
-          report.id !== id
+      await deleteReport(id);
+
+      await loadData();
+
+    } catch (error) {
+
+      console.error(
+        "Gagal menghapus laporan:",
+        error
       );
 
+      alert(
+        "Terjadi kesalahan saat menghapus laporan."
+      );
 
-    setReports(
-      updatedReports
-    );
-
-
-    localStorage.setItem(
-      "reports",
-      JSON.stringify(
-        updatedReports
-      )
-    );
+    }
 
   };
+
+
+  // =========================
+  // SEDANG MEMUAT
+  // =========================
+
+  if (loadingData) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="reports-page">
+
+          <div className="empty-data">
+            Memuat data laporan...
+          </div>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
 
 
   // =========================
@@ -1220,7 +1261,7 @@ function Reports() {
                   (student) => {
 
                     const studentPackage =
-                      getPackageByStudent(
+                      getStudentPackage(
                         student.id
                       );
 
@@ -1467,7 +1508,7 @@ function Reports() {
                   {(() => {
 
                     const selectedPackage =
-                      getPackageByStudent(
+                      getStudentPackage(
                         newReport.studentId
                       );
 
@@ -1554,6 +1595,7 @@ function Reports() {
                   onClick={() =>
                     setShowForm(false)
                   }
+                  disabled={isSaving}
                 >
                   Batal
                 </button>
@@ -1562,8 +1604,9 @@ function Reports() {
                 <button
                   type="submit"
                   className="save-button"
+                  disabled={isSaving}
                 >
-                  Simpan Laporan
+                  {isSaving ? "Menyimpan..." : "Simpan Laporan"}
                 </button>
 
               </div>

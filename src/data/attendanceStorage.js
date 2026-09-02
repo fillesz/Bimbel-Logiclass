@@ -1,124 +1,69 @@
-const defaultAttendance = [
-  {
-    id: "ATT001",
-    studentId: "LG001",
-    date: "10 Agustus 2026",
-    subject: "Matematika",
-    attendance: "Hadir",
-  },
-  {
-    id: "ATT002",
-    studentId: "LG003",
-    date: "10 Agustus 2026",
-    subject: "Bahasa Inggris",
-    attendance: "Hadir",
-  },
-  {
-    id: "ATT003",
-    studentId: "LG001",
-    date: "8 Agustus 2026",
-    subject: "IPA",
-    attendance: "Hadir",
-  },
-  {
-    id: "ATT004",
-    studentId: "LG003",
-    date: "8 Agustus 2026",
-    subject: "Matematika",
-    attendance: "Izin",
-  },
-];
+import { db } from "../firebase";
+
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+
+const ATTENDANCE_COLLECTION = "attendance";
 
 
-export const getAttendance = () => {
-  const savedAttendance =
-    localStorage.getItem("attendance");
+// =========================
+// AMBIL SEMUA PRESENSI
+// =========================
 
-  if (savedAttendance) {
-    return JSON.parse(savedAttendance);
-  }
+export const getAttendance = async () => {
 
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(defaultAttendance)
+  const snapshot = await getDocs(
+    collection(db, ATTENDANCE_COLLECTION)
   );
 
-  return defaultAttendance;
+  return snapshot.docs.map((docSnap) => ({
+    ...docSnap.data(),
+    id: docSnap.id,
+  }));
+
 };
 
 
-export const addAttendance = (
+// =========================
+// TAMBAH PRESENSI
+// =========================
+// ID presensi (ATT...) sudah dibuat di
+// Attendance.jsx (pakai Date.now()), jadi
+// di sini tinggal pakai setDoc dengan ID itu.
+
+export const addAttendance = async (
   attendance
 ) => {
 
-  const currentAttendance =
-    getAttendance();
+  const { id, ...attendanceData } = attendance;
 
-  const updatedAttendance = [
-    ...currentAttendance,
-    attendance,
-  ];
-
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(
-      updatedAttendance
-    )
+  await setDoc(
+    doc(db, ATTENDANCE_COLLECTION, id),
+    attendanceData
   );
 
-  return updatedAttendance;
+  return getAttendance();
+
 };
 
 
-export const updateAttendance = (
-  id,
-  updatedData
+// =========================
+// HAPUS PRESENSI
+// =========================
+
+export const deleteAttendance = async (
+  attendanceId
 ) => {
 
-  const currentAttendance =
-    getAttendance();
-
-  const updatedAttendance =
-    currentAttendance.map(
-      (item) =>
-        item.id === id
-          ? {
-              ...item,
-              ...updatedData,
-            }
-          : item
-    );
-
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(
-      updatedAttendance
-    )
+  await deleteDoc(
+    doc(db, ATTENDANCE_COLLECTION, attendanceId)
   );
 
-  return updatedAttendance;
-};
+  return getAttendance();
 
-
-export const deleteAttendance = (
-  id
-) => {
-
-  const currentAttendance =
-    getAttendance();
-
-  const updatedAttendance =
-    currentAttendance.filter(
-      (item) =>
-        item.id !== id
-    );
-
-  localStorage.setItem(
-    "attendance",
-    JSON.stringify(
-      updatedAttendance
-    )
-  );
-
-  return updatedAttendance;
 };

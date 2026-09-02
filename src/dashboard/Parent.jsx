@@ -1,4 +1,5 @@
 import DashboardLayout from "../layouts/DashboardLayout";
+import { useState, useEffect } from "react";
 
 import {
   getPackageByStudent,
@@ -7,6 +8,8 @@ import {
 } from "../data/packageStorage";
 
 import { getStudentById } from "../data/studentStorage";
+
+import { getReports } from "../data/reportStorage";
 
 
 function Parent() {
@@ -21,25 +24,100 @@ function Parent() {
 
 
   // =========================
-  // DATA MURID
+  // DATA ANAK / PAKET / LAPORAN
+  // =========================
+  // Semuanya dari Firestore, jadi harus
+  // diambil lewat useEffect (async). Paket
+  // baru bisa diambil SETELAH tahu id anaknya,
+  // makanya urut: ambil anak dulu, baru
+  // paket + laporan sekaligus.
+
+  const [child, setChild] = useState(null);
+  const [packageItem, setPackageItem] = useState(null);
+  const [reports, setReports] = useState([]);
+
+  const [loadingChild, setLoadingChild] =
+    useState(true);
+
+  useEffect(() => {
+
+    const loadData = async () => {
+
+      setLoadingChild(true);
+
+      try {
+
+        if (user?.studentId) {
+
+          const childData = await getStudentById(
+            user.studentId
+          );
+
+          setChild(childData || null);
+
+          if (childData) {
+
+            const [packageData, reportsData] =
+              await Promise.all([
+                getPackageByStudent(childData.id),
+                getReports(),
+              ]);
+
+            setPackageItem(packageData);
+            setReports(reportsData);
+
+          }
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Gagal memuat data dashboard orang tua:",
+          error
+        );
+
+      } finally {
+
+        setLoadingChild(false);
+
+      }
+
+    };
+
+    loadData();
+
+  }, []);
+
+
+  // =========================
+  // SEDANG MEMUAT
   // =========================
 
-  const child = user?.studentId
-    ? getStudentById(user.studentId)
-    : null;
+  if (loadingChild) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="parent-empty">
+
+          <p>
+            Memuat data anak...
+          </p>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
 
 
   // =========================
   // PAKET ANAK
   // =========================
-
-  const packageItem =
-    child
-      ? getPackageByStudent(
-          child.id
-        )
-      : null;
-
 
   const remaining =
     packageItem
@@ -67,15 +145,8 @@ function Parent() {
 
 
   // =========================
-  // LAPORAN
+  // LAPORAN ANAK
   // =========================
-
-  const reports = JSON.parse(
-    localStorage.getItem(
-      "reports"
-    ) || "[]"
-  );
-
 
   const childReports =
     reports.filter(

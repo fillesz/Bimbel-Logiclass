@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import users from "../data/users";
+import { getAccounts } from "../data/accountStorage";
 import "../styles/Login.css";
 
 function Login() {
@@ -9,7 +10,11 @@ function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
+  const [isLoading, setIsLoading] =
+    useState(false);
+
+  const handleLogin = async () => {
+
     // =========================
     // BERSIHKAN INPUT
     // =========================
@@ -17,91 +22,118 @@ function Login() {
     const inputUsername = username.trim();
     const inputPassword = password.trim();
 
-    // =========================
-    // AMBIL AKUN TAMBAHAN
-    // =========================
+    if (!inputUsername || !inputPassword) {
 
-    let accounts = [];
+      alert(
+        "Mohon isi username dan password."
+      );
 
-    const savedAccounts =
-      localStorage.getItem("accounts");
+      return;
 
-    if (savedAccounts) {
-      try {
-        accounts = JSON.parse(savedAccounts);
+    }
 
-        if (!Array.isArray(accounts)) {
-          accounts = [];
-        }
-      } catch (error) {
-        console.error(
-          "Data accounts rusak:",
-          error
+
+    setIsLoading(true);
+
+
+    try {
+
+      // =========================
+      // AMBIL AKUN DARI FIRESTORE
+      // =========================
+
+      const accounts = await getAccounts();
+
+
+      // =========================
+      // GABUNGKAN AKUN
+      // =========================
+      // users.js = akun bawaan/demo (statis)
+      // accounts = akun yang dibuat lewat
+      // halaman Pengaturan (Firestore)
+
+      const allUsers = [
+        ...users,
+        ...accounts,
+      ];
+
+
+      // =========================
+      // CARI USER
+      // =========================
+
+      const user = allUsers.find(
+        (u) =>
+          u.username === inputUsername &&
+          u.password === inputPassword
+      );
+
+
+      // =========================
+      // LOGIN GAGAL
+      // =========================
+
+      if (!user) {
+
+        alert(
+          "Username atau Password salah!"
         );
 
-        accounts = [];
+        return;
+
       }
-    }
 
-    // =========================
-    // GABUNGKAN AKUN
-    // =========================
 
-    const allUsers = [
-      ...users,
-      ...accounts,
-    ];
+      // =========================
+      // SIMPAN USER LOGIN
+      // =========================
 
-    // =========================
-    // CARI USER
-    // =========================
-
-    const user = allUsers.find(
-      (u) =>
-        u.username === inputUsername &&
-        u.password === inputPassword
-    );
-
-    // =========================
-    // LOGIN GAGAL
-    // =========================
-
-    if (!user) {
-      alert(
-        "Username atau Password salah!"
+      localStorage.setItem(
+        "user",
+        JSON.stringify(user)
       );
-      return;
+
+
+      // =========================
+      // REDIRECT
+      // =========================
+
+      switch (user.role) {
+
+        case "admin":
+          navigate("/admin");
+          break;
+
+        case "tutor":
+          navigate("/tutor");
+          break;
+
+        case "parent":
+          navigate("/parent");
+          break;
+
+        default:
+          alert("Role tidak dikenali.");
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Gagal login:",
+        error
+      );
+
+      alert(
+        "Terjadi kesalahan saat login. Silakan coba lagi."
+      );
+
+    } finally {
+
+      setIsLoading(false);
+
     }
 
-    // =========================
-    // SIMPAN USER LOGIN
-    // =========================
-
-    localStorage.setItem(
-      "user",
-      JSON.stringify(user)
-    );
-
-    // =========================
-    // REDIRECT
-    // =========================
-
-    switch (user.role) {
-      case "admin":
-        navigate("/admin");
-        break;
-
-      case "tutor":
-        navigate("/tutor");
-        break;
-
-      case "parent":
-        navigate("/parent");
-        break;
-
-      default:
-        alert("Role tidak dikenali.");
-    }
   };
 
   return (
@@ -141,8 +173,9 @@ function Login() {
 
         <button
           onClick={handleLogin}
+          disabled={isLoading}
         >
-          Masuk
+          {isLoading ? "Memeriksa..." : "Masuk"}
         </button>
 
       </div>

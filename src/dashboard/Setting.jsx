@@ -1,6 +1,13 @@
 import DashboardLayout from "../layouts/DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getStudents } from "../data/studentStorage";
+
+import {
+  getAccounts,
+  addAccount,
+  updateAccount,
+  deleteAccount,
+} from "../data/accountStorage";
 
 function Setting() {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -9,50 +16,41 @@ function Setting() {
   // DATA MURID (untuk dropdown Student ID)
   // =========================
 
-  const students = getStudents();
+  const [students, setStudents] = useState([]);
+
+  useEffect(() => {
+
+    getStudents().then(setStudents);
+
+  }, []);
 
   // =========================
   // DATA AKUN
   // =========================
+  // Sekarang diambil dari Firestore
 
-  const [accounts, setAccounts] = useState(() => {
-    const savedAccounts = localStorage.getItem("accounts");
+  const [accounts, setAccounts] = useState([]);
 
-    if (savedAccounts) {
-      return JSON.parse(savedAccounts);
-    }
+  const [loadingAccounts, setLoadingAccounts] =
+    useState(true);
 
-    return [
-      {
-        id: "ACC001",
-        username: "bara",
-        name: "Kak Bara",
-        role: "tutor",
-        tutorId: "T001",
-      },
-      {
-        id: "ACC002",
-        username: "rani",
-        name: "Kak Rani",
-        role: "tutor",
-        tutorId: "T002",
-      },
-      {
-        id: "ACC003",
-        username: "ortuaisyah",
-        name: "Orang Tua Aisyah",
-        role: "parent",
-        studentId: "LG001",
-      },
-      {
-        id: "ACC004",
-        username: "ortufajar",
-        name: "Orang Tua Fajar",
-        role: "parent",
-        studentId: "LG002",
-      },
-    ];
-  });
+  useEffect(() => {
+
+    loadAccounts();
+
+  }, []);
+
+  const loadAccounts = async () => {
+
+    setLoadingAccounts(true);
+
+    const data = await getAccounts();
+
+    setAccounts(data);
+
+    setLoadingAccounts(false);
+
+  };
 
   // =========================
   // FORM TAMBAH / EDIT
@@ -61,6 +59,8 @@ function Setting() {
   const [showForm, setShowForm] = useState(false);
 
   const [editingAccount, setEditingAccount] = useState(null);
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const [newAccount, setNewAccount] = useState({
     username: "",
@@ -156,7 +156,7 @@ function Setting() {
   // TAMBAH / EDIT
   // =========================
 
-  const handleSaveAccount = (e) => {
+  const handleSaveAccount = async (e) => {
     e.preventDefault();
 
     // Validasi dasar
@@ -214,125 +214,133 @@ function Setting() {
       return;
     }
 
-    // =========================
-    // MODE EDIT
-    // =========================
+    setIsSaving(true);
 
-    if (editingAccount) {
-      const updatedAccounts = accounts.map(
-        (account) => {
-          if (account.id !== editingAccount.id) {
-            return account;
-          }
+    try {
 
-          return {
-            ...account,
+      // =========================
+      // MODE EDIT
+      // =========================
 
-            username:
-              newAccount.username.trim(),
+      if (editingAccount) {
 
-            name:
-              newAccount.name.trim(),
+        const updatedData = {
 
-            role:
-              newAccount.role,
+          username:
+            newAccount.username.trim(),
 
-            // Password hanya diubah
-            // kalau field diisi
-            ...(newAccount.password.trim()
-              ? {
-                  password:
-                    newAccount.password.trim(),
-                }
-              : {}),
+          name:
+            newAccount.name.trim(),
 
-            // Tutor
-            ...(newAccount.role === "tutor"
-              ? {
-                  tutorId:
-                    newAccount.tutorId.trim(),
-                  studentId: undefined,
-                }
-              : {}),
+          role:
+            newAccount.role,
 
-            // Parent
-            ...(newAccount.role === "parent"
-              ? {
-                  studentId:
-                    newAccount.studentId.trim(),
-                  tutorId: undefined,
-                }
-              : {}),
-          };
-        }
-      );
+          // Password hanya diubah
+          // kalau field diisi
+          ...(newAccount.password.trim()
+            ? {
+                password:
+                  newAccount.password.trim(),
+              }
+            : {}),
 
-      setAccounts(updatedAccounts);
+          // Tutor
+          ...(newAccount.role === "tutor"
+            ? {
+                tutorId:
+                  newAccount.tutorId.trim(),
+                studentId: null,
+              }
+            : {}),
 
-      localStorage.setItem(
-        "accounts",
-        JSON.stringify(updatedAccounts)
-      );
+          // Parent
+          ...(newAccount.role === "parent"
+            ? {
+                studentId:
+                  newAccount.studentId.trim(),
+                tutorId: null,
+              }
+            : {}),
 
-      alert("Akun berhasil diperbarui.");
+        };
+
+        await updateAccount(
+          editingAccount.id,
+          updatedData
+        );
+
+        await loadAccounts();
+
+        alert("Akun berhasil diperbarui.");
+
+        handleCloseForm();
+
+        return;
+
+      }
+
+      // =========================
+      // MODE TAMBAH
+      // =========================
+
+      const newAccountData = {
+        id: generateAccountId(),
+
+        username:
+          newAccount.username.trim(),
+
+        password:
+          newAccount.password.trim(),
+
+        name:
+          newAccount.name.trim(),
+
+        role:
+          newAccount.role,
+
+        ...(newAccount.role === "tutor"
+          ? {
+              tutorId:
+                newAccount.tutorId.trim(),
+            }
+          : {
+              studentId:
+                newAccount.studentId.trim(),
+            }),
+      };
+
+      await addAccount(newAccountData);
+
+      await loadAccounts();
+
+      alert("Akun berhasil ditambahkan.");
 
       handleCloseForm();
 
-      return;
+    } catch (error) {
+
+      console.error(
+        "Gagal menyimpan akun:",
+        error
+      );
+
+      alert(
+        "Terjadi kesalahan saat menyimpan akun. Silakan coba lagi."
+      );
+
+    } finally {
+
+      setIsSaving(false);
+
     }
 
-    // =========================
-    // MODE TAMBAH
-    // =========================
-
-    const newAccountData = {
-      id: generateAccountId(),
-
-      username:
-        newAccount.username.trim(),
-
-      password:
-        newAccount.password.trim(),
-
-      name:
-        newAccount.name.trim(),
-
-      role:
-        newAccount.role,
-
-      ...(newAccount.role === "tutor"
-        ? {
-            tutorId:
-              newAccount.tutorId.trim(),
-          }
-        : {
-            studentId:
-              newAccount.studentId.trim(),
-          }),
-    };
-
-    const updatedAccounts = [
-      ...accounts,
-      newAccountData,
-    ];
-
-    setAccounts(updatedAccounts);
-
-    localStorage.setItem(
-      "accounts",
-      JSON.stringify(updatedAccounts)
-    );
-
-    alert("Akun berhasil ditambahkan.");
-
-    handleCloseForm();
   };
 
   // =========================
   // HAPUS AKUN
   // =========================
 
-  const handleDeleteAccount = (account) => {
+  const handleDeleteAccount = async (account) => {
     const confirmed = window.confirm(
       `Apakah kamu yakin ingin menghapus akun "${account.name}"?`
     );
@@ -341,18 +349,26 @@ function Setting() {
       return;
     }
 
-    const updatedAccounts = accounts.filter(
-      (item) => item.id !== account.id
-    );
+    try {
 
-    setAccounts(updatedAccounts);
+      await deleteAccount(account.id);
 
-    localStorage.setItem(
-      "accounts",
-      JSON.stringify(updatedAccounts)
-    );
+      await loadAccounts();
 
-    alert("Akun berhasil dihapus.");
+      alert("Akun berhasil dihapus.");
+
+    } catch (error) {
+
+      console.error(
+        "Gagal menghapus akun:",
+        error
+      );
+
+      alert(
+        "Terjadi kesalahan saat menghapus akun."
+      );
+
+    }
   };
 
   // =========================
@@ -508,6 +524,14 @@ function Setting() {
 
 
           <div className="table-wrapper">
+
+            {loadingAccounts ? (
+
+              <div className="empty-data">
+                Memuat data akun...
+              </div>
+
+            ) : (
 
             <table>
 
@@ -743,6 +767,8 @@ function Setting() {
 
             </table>
 
+            )}
+
           </div>
 
         </div>
@@ -913,7 +939,7 @@ function Setting() {
               )}
 
 
-              {/* STUDENT ID — sekarang dropdown, bukan ketik manual */}
+              {/* STUDENT ID — dropdown murid */}
 
               {newAccount.role === "parent" && (
 
@@ -966,6 +992,7 @@ function Setting() {
                   type="button"
                   className="cancel-button"
                   onClick={handleCloseForm}
+                  disabled={isSaving}
                 >
                   Batal
                 </button>
@@ -974,9 +1001,12 @@ function Setting() {
                 <button
                   type="submit"
                   className="save-button"
+                  disabled={isSaving}
                 >
 
-                  {editingAccount
+                  {isSaving
+                    ? "Menyimpan..."
+                    : editingAccount
                     ? "Simpan Perubahan"
                     : "Simpan Akun"}
 

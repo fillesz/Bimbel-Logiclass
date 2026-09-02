@@ -6,6 +6,7 @@ import {
   updateStudent,
   deleteStudent,
 } from "../data/studentStorage";
+import { getAccounts } from "../data/accountStorage";
 
 
 function Students() {
@@ -66,26 +67,15 @@ function Students() {
 // =========================
 // DATA TUTOR
 // =========================
+// Sekarang diambil dari Firestore
 
-const [accounts] = useState(() => {
-  const savedAccounts =
-    localStorage.getItem("accounts");
+const [accounts, setAccounts] = useState([]);
 
-  if (savedAccounts) {
-    try {
-      return JSON.parse(savedAccounts);
-    } catch (error) {
-      console.error(
-        "Data accounts rusak:",
-        error
-      );
+useEffect(() => {
 
-      return [];
-    }
-  }
+  getAccounts().then(setAccounts);
 
-  return [];
-});
+}, []);
 
 const tutors = accounts
   .filter(

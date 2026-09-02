@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import { getStudents } from "../data/studentStorage";
@@ -20,14 +20,47 @@ function TutorStudents() {
   // =========================
   // DATA MURID
   // =========================
+  // getStudents() sekarang async (Firestore),
+  // jadi diambil lewat useEffect, bukan
+  // langsung di useState seperti sebelumnya.
 
-  const [students] = useState(
-    getStudents()
-  );
-
+  const [students, setStudents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [search, setSearch] =
     useState("");
+
+
+  useEffect(() => {
+
+    const loadStudents = async () => {
+
+      setIsLoading(true);
+
+      try {
+
+        const data = await getStudents();
+
+        setStudents(data);
+
+      } catch (error) {
+
+        console.error(
+          "Gagal memuat data murid:",
+          error
+        );
+
+      } finally {
+
+        setIsLoading(false);
+
+      }
+
+    };
+
+    loadStudents();
+
+  }, []);
 
 
   // =========================
@@ -55,6 +88,31 @@ function TutorStudents() {
             search.toLowerCase()
           )
     );
+
+
+  // =========================
+  // LOADING STATE
+  // =========================
+
+  if (isLoading) {
+
+    return (
+
+      <DashboardLayout>
+
+        <div className="students-page">
+
+          <div className="empty-data">
+            Memuat data murid...
+          </div>
+
+        </div>
+
+      </DashboardLayout>
+
+    );
+
+  }
 
 
   // =========================
